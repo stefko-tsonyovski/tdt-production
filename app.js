@@ -1,6 +1,6 @@
 require("dotenv").config();
 require("express-async-errors");
-const path = require('path');
+const path = require("path");
 
 // REMOVE PROXY IN REACT APP BEFORE DEPLOY!!!!!!!!
 
@@ -35,13 +35,14 @@ const roundsRoute = require("./routes/roundsRoute");
 const picksRoute = require("./routes/picksRoute");
 const favoritesRoute = require("./routes/favoriteRoute");
 const invitationsRoute = require("./routes/invitationsRoute");
+const usersRoute = require("./routes/usersRoute");
 
 // error handler
 const notFoundMiddleware = require("./middleware/not-found");
 const errorHandlerMiddleware = require("./middleware/error-handler");
 
 app.set("trust proxy", 1);
-app.use(express.static(path.resolve(__dirname, './client/build')));
+app.use(express.static(path.resolve(__dirname, "./client/build")));
 // app.use(
 //   rateLimiter({
 //     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -73,9 +74,10 @@ app.use("/api/v1/rounds", roundsRoute);
 app.use("/api/v1/picks", picksRoute);
 app.use("/api/v1/favorites", favoritesRoute);
 app.use("/api/v1/invitations", invitationsRoute);
+app.use("/api/v1/users", usersRoute);
 
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, './client/build', 'index.html'));
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "./client/build", "index.html"));
 });
 
 app.use(notFoundMiddleware);
