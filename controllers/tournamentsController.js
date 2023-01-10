@@ -7,25 +7,29 @@ const { BadRequestError } = require("../errors");
 const getTournaments = async (req, res) => {
   let tournaments = await Tournament.find({}).sort({ city: "asc" });
   const countries = await Country.find({});
-  tournaments = tournaments.map((t) => {
-    const country = countries.find((c) => {
-      return c.code.toLowerCase() === t.countryCode.toLowerCase();
+  tournaments = tournaments
+    .filter((t) => t.season === 2023)
+    .map((t) => {
+      const country = countries.find((c) => {
+        return c.code.toLowerCase() === t.countryCode.toLowerCase();
+      });
+
+      if (country) {
+        return {
+          id: t.id,
+          city: t.city,
+          code: t.code,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          countryName: country.name,
+          countryFlag: country.countryFlag,
+          season: t.season,
+          name: t.name,
+        };
+      }
+
+      return t;
     });
-
-    if (country) {
-      return {
-        id: t._id,
-        city: t.city,
-        code: t.code,
-        startDate: t.startDate,
-        endDate: t.endDate,
-        countryName: country.name,
-        countryFlag: country.countryFlag,
-      };
-    }
-
-    return t;
-  });
 
   res.status(StatusCodes.OK).json({ tournaments });
 };
@@ -35,7 +39,6 @@ const getTournamentsByDate = async (req, res) => {
   let tournaments = await Tournament.find({}).sort({ city: "asc" });
   const countries = await Country.find({});
   const matches = await Match.find({});
-  const options = { year: "numeric", month: "numeric", day: "numeric" };
 
   tournaments = tournaments
     .filter((t) => {
@@ -108,7 +111,7 @@ const getTournamentsByWeek = async (req, res) => {
 
 const getSingleTournament = async (req, res) => {
   const { id } = req.params;
-  const tournament = await Tournament.findOne({ id });
+  const tournament = await Tournament.findOne({ id: Number(id) });
   if (!tournament) {
     throw new BadRequestError("No tournament found");
   }

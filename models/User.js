@@ -42,6 +42,14 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     required: [true, "Please provide bracket points"],
   },
+  socialPoints: {
+    type: Number,
+    required: [true, "Please provide social points"],
+  },
+  leaguePoints: {
+    type: Number,
+    required: [true, "Please provide league points"],
+  },
 });
 
 UserSchema.pre("save", async function () {

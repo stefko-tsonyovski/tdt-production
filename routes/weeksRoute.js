@@ -10,6 +10,7 @@ const {
   getAllWeeks,
   createWeek,
   getWeek,
+  getWeekByCurrentDate,
   updateWeek,
   deleteWeek,
 } = require("../controllers/weeksController");
@@ -18,6 +19,9 @@ router
   .route("/")
   .get(authenticateUser, getAllWeeks)
   .post(authenticateUser, authorizePermissions("admin", "owner"), createWeek);
+
+router.route("/byCurrentDate").get(authenticateUser, getWeekByCurrentDate);
+
 router
   .route("/:id")
   .get(authenticateUser, getWeek)

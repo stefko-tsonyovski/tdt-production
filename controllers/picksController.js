@@ -49,7 +49,7 @@ const createPick = async (req, res) => {
   const start = new Date(week.from);
   const current = new Date();
 
-  if (current >= start) {
+  if (current >= start && current >= new Date(tournament.startDate)) {
     throw new BadRequestError("Deadline passed!");
   }
 
@@ -60,28 +60,6 @@ const createPick = async (req, res) => {
   }
 
   const pick = await Pick.create({ bracketId, playerId, userId });
-
-  const connectedBracket = await Bracket.findOne({
-    _id: bracket.connectedBracketId,
-  });
-
-  if (!connectedBracket) {
-    throw new NotFoundError("Bracket not found!");
-  }
-
-  if (!connectedBracket.homeId) {
-    await Bracket.findOneAndUpdate(
-      { _id: connectedBracket._id },
-      { homeId: playerId },
-      { runValidators: true }
-    );
-  } else {
-    await Bracket.findOneAndUpdate(
-      { _id: connectedBracket._id },
-      { awayId: playerId },
-      { runValidators: true }
-    );
-  }
 
   res.status(StatusCodes.CREATED).json({ pick });
 };

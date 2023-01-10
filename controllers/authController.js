@@ -36,6 +36,8 @@ const register = async (req, res) => {
       balance: 100000000,
       points: 0,
       bracketPoints: 0,
+      socialPoints: 0,
+      leaguePoints: 0,
     });
   }
 

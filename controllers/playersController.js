@@ -5,6 +5,7 @@ const Week = require("../models/Week");
 const Match = require("../models/Match");
 const User = require("../models/User");
 const Tournament = require("../models/Tournament");
+const Favorite = require("../models/Favorite");
 
 const pointsSystem = require("../utils/pointsSystem");
 const parseDate = require("../utils/parseDate");
@@ -90,7 +91,7 @@ const getSinglePlayer = async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
-    res.status(StatusCodes.OK).json({});
+    throw new BadRequestError("Provide player id");
   }
 
   const player = await Player.findOne({ id: Number(id) });
@@ -103,6 +104,7 @@ const getSinglePlayer = async (req, res) => {
 
 const getSinglePlayerMatches = async (req, res) => {
   const { id } = req.params;
+  const { userId } = req.user;
   let matches = await Match.find({
     $or: [
       { homeId: { $eq: id } },
@@ -113,6 +115,7 @@ const getSinglePlayerMatches = async (req, res) => {
   });
 
   const players = await Player.find({});
+  const favorites = await Favorite.find({});
   const tournaments = await Tournament.find({});
   const player = players.find((player) => player.id === Number(id));
 
@@ -122,11 +125,16 @@ const getSinglePlayerMatches = async (req, res) => {
     const tournament = tournaments.find(
       (tournament) => tournament.id === match.tournamentId
     );
+
+    const favoriteId = favorites.find(
+      (favorite) => favorite.matchId === match.id && favorite.userId === userId
+    )?._id;
     return {
       ...match._doc,
       tournament: { ...tournament._doc },
       homePlayer: { ...homePlayer._doc },
       awayPlayer: { ...awayPlayer._doc },
+      favoriteId,
     };
   });
 
