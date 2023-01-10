@@ -3,7 +3,13 @@ const router = express.Router();
 
 const {
   createMatch,
+  updateMatch,
   getSingleMatch,
+  getSingleMatchManual,
+  getMatchesByTournamentIdAndRoundId,
+  getMatchesByTournamentIdAndDate,
+  getMatchesByTournamentIdGroupedByRoundId,
+  getMatchesByPlayerGroupedByTournamentId,
 } = require("../controllers/matchesController");
 const {
   authenticateUser,
@@ -14,6 +20,25 @@ router
   .route("/")
   .post(authenticateUser, authorizePermissions("admin", "owner"), createMatch);
 
-router.route("/:id").get(authenticateUser, getSingleMatch);
+router
+  .route("/byTournamentAndRound")
+  .get(authenticateUser, getMatchesByTournamentIdAndRoundId);
+
+router
+  .route("/byTournamentGroupByRound")
+  .get(authenticateUser, getMatchesByTournamentIdGroupedByRoundId);
+router
+  .route("/byTournamentAndDate")
+  .get(authenticateUser, getMatchesByTournamentIdAndDate);
+router
+  .route("/byPlayerGroupByTournament")
+  .get(authenticateUser, getMatchesByPlayerGroupedByTournamentId);
+
+router
+  .route("/:id")
+  .get(authenticateUser, getSingleMatch)
+  .patch(authenticateUser, authorizePermissions("admin", "owner"), updateMatch);
+
+router.route("/manual/:id").get(authenticateUser, getSingleMatchManual);
 
 module.exports = router;

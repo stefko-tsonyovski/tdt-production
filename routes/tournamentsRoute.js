@@ -6,9 +6,6 @@ const {
   getSingleTournament,
   createTournament,
 } = require("../controllers/tournamentsController");
-const {
-  getSingleTournamentMatches,
-} = require("../controllers/matchesController");
 
 const {
   authenticateUser,
@@ -27,9 +24,6 @@ router
   );
 
 router.route("/byDate/:date").get(authenticateUser, getTournamentsByDate);
-router
-  .route("/:id/matches/byDate/:date")
-  .get(authenticateUser, getSingleTournamentMatches);
 
 router.route("/byWeek").get(authenticateUser, getTournamentsByWeek);
 

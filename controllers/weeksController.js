@@ -35,6 +35,20 @@ const getWeek = async (req, res) => {
   res.status(StatusCodes.OK).json({ week });
 };
 
+const getWeekByCurrentDate = async (req, res) => {
+  const date = Date.now();
+  const weeks = await Week.find({});
+
+  const week = weeks.find((week) => {
+    const fromDate = new Date(week.from);
+    const toDate = new Date(week.to);
+
+    return fromDate >= date && date <= toDate;
+  });
+
+  res.status(StatusCodes.OK).json({ week });
+};
+
 const updateWeek = async (req, res) => {
   const { name, from, to } = req.body;
   const { id } = req.params;
@@ -75,6 +89,7 @@ module.exports = {
   getAllWeeks,
   createWeek,
   getWeek,
+  getWeekByCurrentDate,
   updateWeek,
   deleteWeek,
 };

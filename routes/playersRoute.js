@@ -42,7 +42,7 @@ router
   .patch(authenticateUser, calculateTotalPoints);
 
 router.route("/calculateTotal").patch(authenticateUser, calculateTotalPoints);
-router.route("/:id").get(getSinglePlayer);
-router.route("/:id/matches").get(getSinglePlayerMatches);
+router.route("/:id").get(authenticateUser, getSinglePlayer);
+router.route("/:id/matches").get(authenticateUser, getSinglePlayerMatches);
 
 module.exports = router;
