@@ -26,6 +26,8 @@ const register = async (req, res) => {
     role,
     points: 0,
     bracketPoints: 0,
+    socialPoints: 0,
+    leaguePoints: 0,
   });
 
   for (let i = 0; i < weeks.length; i++) {
@@ -36,8 +38,6 @@ const register = async (req, res) => {
       balance: 100000000,
       points: 0,
       bracketPoints: 0,
-      socialPoints: 0,
-      leaguePoints: 0,
     });
   }
 
