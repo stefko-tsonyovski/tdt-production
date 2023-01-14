@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { authenticateUser } = require("../middleware/authentication");
 const {
+  authenticateUser,
+  authorizePermissions,
+} = require("../middleware/authentication");
+const {
+  createPlayer,
+  updatePlayer,
   getAll,
   getAllPlayers,
   getAllPlayersInTeam,
@@ -20,7 +25,19 @@ const {
   getSinglePlayerMatches,
 } = require("../controllers/playersController");
 
-router.route("/").post(authenticateUser, getAllPlayers).get(getAll);
+router
+  .route("/")
+  .post(authenticateUser, getAllPlayers)
+  .get(getAll)
+  .patch(
+    authenticateUser,
+    authorizePermissions("admin", "owner"),
+    updatePlayer
+  );
+
+router
+  .route("/create")
+  .post(authenticateUser, authorizePermissions("admin", "owner"), createPlayer);
 
 router
   .route("/team")
@@ -43,6 +60,7 @@ router
 
 router.route("/calculateTotal").patch(authenticateUser, calculateTotalPoints);
 router.route("/:id").get(authenticateUser, getSinglePlayer);
+
 router.route("/:id/matches").get(authenticateUser, getSinglePlayerMatches);
 
 module.exports = router;

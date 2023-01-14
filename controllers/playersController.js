@@ -14,6 +14,30 @@ const { StatusCodes } = require("http-status-codes");
 const { BadRequestError } = require("../errors");
 const { NotFoundError } = require("../errors");
 
+const createPlayer = async (req, res) => {
+  const players = await Player.find({}).sort("id");
+  const player = await Player.create({
+    ...req.body,
+    id: players[players.length - 1].id + 1,
+  });
+  res.status(StatusCodes.CREATED).json({ player });
+};
+
+const updatePlayer = async (req, res) => {
+  const { id } = req.params;
+  const { inputModel } = req.body;
+
+  const player = await Player.findOne({ id: inputModel.id });
+
+  if (!player) {
+    throw new NotFoundError(`Not found player with id: ${id}`);
+  }
+
+  await Player.findOneAndUpdate({ id: inputModel.id }, { ...inputModel });
+
+  res.status(StatusCodes.OK).send();
+};
+
 const getAll = async (req, res) => {
   const players = await Player.find({}).sort("ranking");
   res.status(StatusCodes.OK).json({ players });
@@ -103,6 +127,7 @@ const getSinglePlayer = async (req, res) => {
 };
 
 const getSinglePlayerMatches = async (req, res) => {
+  const { skipMatchId, playerId, surface } = req.body;
   const { id } = req.params;
   const { userId } = req.user;
   let matches = await Match.find({
@@ -389,9 +414,9 @@ const calculatePointsForUserPlayers = async (req, res) => {
 
   // UNCOMMENT IN PRODUCTION
 
-  // if (!(current >= start && current <= end)) {
-  //   throw new BadRequestError("You cannot update points for this week yet!");
-  // }
+  if (!(current >= start && current <= end)) {
+    throw new BadRequestError("You cannot update points for this week yet!");
+  }
 
   const userPlayers = await UserPlayer.find({ weekId, userId });
   let weeklyPoints = 0;
@@ -588,6 +613,8 @@ const getTotalPoints = async (req, res) => {
 };
 
 module.exports = {
+  createPlayer,
+  updatePlayer,
   getAll,
   getAllPlayers,
   getAllPlayersInTeam,
