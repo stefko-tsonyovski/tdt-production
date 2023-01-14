@@ -26,9 +26,25 @@ const getAllBracketsByTournamentIdAndRoundId = async (req, res) => {
   let brackets = await Bracket.find({
     tournamentId: Number(tournamentId),
     roundId,
-  });
+  }).lean();
+  let resultBrackets = [];
 
-  res.status(StatusCodes.OK).json({ brackets });
+  for (let i = 0; i < brackets.length; i++) {
+    const bracket = brackets[i];
+
+    const homePlayer = await Player.findOne({ id: bracket.homeId }).lean();
+    const awayPlayer = await Player.findOne({ id: bracket.awayId }).lean();
+
+    const finalBracket = {
+      ...bracket,
+      homePlayer,
+      awayPlayer,
+    };
+
+    resultBrackets.push(finalBracket);
+  }
+
+  res.status(StatusCodes.OK).json({ brackets: resultBrackets });
 };
 
 const createBracket = async (req, res) => {
