@@ -28,8 +28,6 @@ const getAllBracketsByTournamentIdAndRoundId = async (req, res) => {
     roundId,
   });
 
-  brackets = brackets.filter((b) => b.homeId && b.awayId);
-
   res.status(StatusCodes.OK).json({ brackets });
 };
 
@@ -71,21 +69,9 @@ const getBracket = async (req, res) => {
 
   const homePlayer = await Player.findOne({ id: bracket.homeId });
 
-  if (!homePlayer) {
-    throw new NotFoundError("Home player does not exist!");
-  }
-
   const awayPlayer = await Player.findOne({ id: bracket.awayId });
 
-  if (!awayPlayer) {
-    throw new NotFoundError("Away player does not exist!");
-  }
-
   const winnerPlayer = await Player.findOne({ id: bracket.winnerId });
-
-  if (!winnerPlayer) {
-    throw new NotFoundError("Winner player does not exist!");
-  }
 
   console.log(bracket);
 

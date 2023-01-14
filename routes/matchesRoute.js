@@ -10,12 +10,16 @@ const {
   getMatchesByTournamentIdAndDate,
   getMatchesByTournamentIdGroupedByRoundId,
   getMatchesByPlayerGroupedByTournamentId,
+  getLastMatchesByPlayer,
+  getLastHedToHeadMatches,
 } = require("../controllers/matchesController");
 const {
   authenticateUser,
   authorizePermissions,
 } = require("../middleware/authentication");
 
+router.route("/lastH2HByPlayer").post(authenticateUser, getLastMatchesByPlayer);
+router.route("/lastByPlayer").post(authenticateUser, getLastMatchesByPlayer);
 router
   .route("/")
   .post(authenticateUser, authorizePermissions("admin", "owner"), createMatch);

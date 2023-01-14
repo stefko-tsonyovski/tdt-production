@@ -36,6 +36,9 @@ const picksRoute = require("./routes/picksRoute");
 const favoritesRoute = require("./routes/favoriteRoute");
 const invitationsRoute = require("./routes/invitationsRoute");
 const usersRoute = require("./routes/usersRoute");
+const leaguesRoute = require("./routes/leaguesRoute");
+const requestsRoute = require("./routes/requestsRoute");
+const leagueInvitationsRoute = require("./routes/leagueInvitationsRouter");
 
 // error handler
 const notFoundMiddleware = require("./middleware/not-found");
@@ -75,6 +78,9 @@ app.use("/api/v1/picks", picksRoute);
 app.use("/api/v1/favorites", favoritesRoute);
 app.use("/api/v1/invitations", invitationsRoute);
 app.use("/api/v1/users", usersRoute);
+app.use("/api/v1/leagues", leaguesRoute);
+app.use("/api/v1/requests", requestsRoute);
+app.use("/api/v1/leagueInvitations", leagueInvitationsRoute);
 
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "./client/build", "index.html"));

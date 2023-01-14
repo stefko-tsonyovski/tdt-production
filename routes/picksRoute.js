@@ -4,7 +4,9 @@ const router = express.Router();
 const { authenticateUser } = require("../middleware/authentication");
 const {
   havePickBeenMade,
+  getAllByUserAndByTournament,
   createPick,
+  verifyPick,
   getWeeklyBracketPoints,
   getTotalBracketPoints,
   calculateWeeklyBracketPoints,
@@ -23,5 +25,10 @@ router
   .route("/calculateTotal")
   .get(authenticateUser, getTotalBracketPoints)
   .patch(authenticateUser, calculateTotalBracketPoints);
+
+router.route("/verify/:bracketId").patch(authenticateUser, verifyPick);
+router
+  .route("/byTournament/:tournamentId")
+  .get(authenticateUser, getAllByUserAndByTournament);
 
 module.exports = router;

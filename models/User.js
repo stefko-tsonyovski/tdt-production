@@ -50,6 +50,15 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     required: [true, "Please provide league points"],
   },
+  leagueId: {
+    type: String,
+  },
+  passwordToken: {
+    type: String,
+  },
+  passwordTokenExpirationDate: {
+    type: Date,
+  },
 });
 
 UserSchema.pre("save", async function () {
