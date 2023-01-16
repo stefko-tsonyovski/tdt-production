@@ -21,6 +21,7 @@ const getTop200Users = async (req, res) => {
         bracketPoints: bracketPointsA,
         socialPoints: socialPointsA,
         leaguePoints: leaguePointsA,
+        predictionPoints: predictionPointsA,
         firstName: firstNameA,
         lastName: lastNameA,
       } = a;
@@ -29,14 +30,23 @@ const getTop200Users = async (req, res) => {
         bracketPoints: bracketPointsB,
         socialPoints: socialPointsB,
         leaguePoints: leaguePointsB,
+        predictionPoints: predictionPointsB,
         firstName: firstNameB,
         lastName: lastNameB,
       } = b;
 
       const totalPointsA =
-        pointsA + bracketPointsA + socialPointsA + leaguePointsA;
+        pointsA +
+        bracketPointsA +
+        socialPointsA +
+        leaguePointsA +
+        predictionPointsA;
       const totalPointsB =
-        pointsB + bracketPointsB + socialPointsB + leaguePointsB;
+        pointsB +
+        bracketPointsB +
+        socialPointsB +
+        leaguePointsB +
+        predictionPointsB;
 
       const fullNameA = firstNameA + lastNameA;
       const fullNameB = firstNameB + lastNameB;
@@ -55,12 +65,23 @@ const getTop200Users = async (req, res) => {
     })
     .slice(0, 200)
     .map((user, index) => {
-      const { points, bracketPoints, socialPoints, leaguePoints } = user;
+      const {
+        points,
+        bracketPoints,
+        socialPoints,
+        leaguePoints,
+        predictionPoints,
+      } = user;
 
       const resultUser = {
         ...user._doc,
         position: index + 1,
-        totalPoints: points + bracketPoints + socialPoints + leaguePoints,
+        totalPoints:
+          points +
+          bracketPoints +
+          socialPoints +
+          leaguePoints +
+          predictionPoints,
       };
 
       return resultUser;
@@ -96,6 +117,7 @@ const getUsersByLeague = async (req, res) => {
         bracketPoints: bracketPointsA,
         socialPoints: socialPointsA,
         leaguePoints: leaguePointsA,
+        predictionPoints: predictionPointsA,
         firstName: firstNameA,
         lastName: lastNameA,
       } = a;
@@ -104,14 +126,23 @@ const getUsersByLeague = async (req, res) => {
         bracketPoints: bracketPointsB,
         socialPoints: socialPointsB,
         leaguePoints: leaguePointsB,
+        predictionPoints: predictionPointsB,
         firstName: firstNameB,
         lastName: lastNameB,
       } = b;
 
       const totalPointsA =
-        pointsA + bracketPointsA + socialPointsA + leaguePointsA;
+        pointsA +
+        bracketPointsA +
+        socialPointsA +
+        leaguePointsA +
+        predictionPointsA;
       const totalPointsB =
-        pointsB + bracketPointsB + socialPointsB + leaguePointsB;
+        pointsB +
+        bracketPointsB +
+        socialPointsB +
+        leaguePointsB +
+        predictionPointsB;
 
       const fullNameA = firstNameA + lastNameA;
       const fullNameB = firstNameB + lastNameB;
@@ -130,12 +161,23 @@ const getUsersByLeague = async (req, res) => {
     })
     .slice(0, 200)
     .map((user, index) => {
-      const { points, bracketPoints, socialPoints, leaguePoints } = user;
+      const {
+        points,
+        bracketPoints,
+        socialPoints,
+        leaguePoints,
+        predictionPoints,
+      } = user;
 
       const resultUser = {
         ...user._doc,
         position: index + 1,
-        totalPoints: points + bracketPoints + socialPoints + leaguePoints,
+        totalPoints:
+          points +
+          bracketPoints +
+          socialPoints +
+          leaguePoints +
+          predictionPoints,
         leagueCreatorId: league.creatorId,
       };
 
@@ -159,6 +201,7 @@ const getCurrentUserPosition = async (req, res) => {
         bracketPoints: bracketPointsA,
         socialPoints: socialPointsA,
         leaguePoints: leaguePointsA,
+        predictionPoints: predictionPointsA,
         firstName: firstNameA,
         lastName: lastNameA,
       } = a;
@@ -167,14 +210,23 @@ const getCurrentUserPosition = async (req, res) => {
         bracketPoints: bracketPointsB,
         socialPoints: socialPointsB,
         leaguePoints: leaguePointsB,
+        predictionPoints: predictionPointsB,
         firstName: firstNameB,
         lastName: lastNameB,
       } = b;
 
       const totalPointsA =
-        pointsA + bracketPointsA + socialPointsA + leaguePointsA;
+        pointsA +
+        bracketPointsA +
+        socialPointsA +
+        leaguePointsA +
+        predictionPointsA;
       const totalPointsB =
-        pointsB + bracketPointsB + socialPointsB + leaguePointsB;
+        pointsB +
+        bracketPointsB +
+        socialPointsB +
+        leaguePointsB +
+        predictionPointsB;
 
       const fullNameA = firstNameA + lastNameA;
       const fullNameB = firstNameB + lastNameB;
@@ -192,12 +244,23 @@ const getCurrentUserPosition = async (req, res) => {
       }
     })
     .map((user, index) => {
-      const { points, bracketPoints, socialPoints, leaguePoints } = user;
+      const {
+        points,
+        bracketPoints,
+        socialPoints,
+        leaguePoints,
+        predictionPoints,
+      } = user;
 
       const resultUser = {
         ...user._doc,
         position: index + 1,
-        totalPoints: points + bracketPoints + socialPoints + leaguePoints,
+        totalPoints:
+          points +
+          bracketPoints +
+          socialPoints +
+          leaguePoints +
+          predictionPoints,
       };
 
       return resultUser;
@@ -284,6 +347,17 @@ const getTotalPointsByUser = async (req, res) => {
   res.status(StatusCodes.OK).json({ points });
 };
 
+const getTradesByUser = async (req, res) => {
+  const { userId } = req.user;
+
+  const user = await User.findOne({ _id: userId });
+  if (!user) {
+    throw new NotFoundError("User does not exist!");
+  }
+
+  res.status(StatusCodes.OK).json({ trades: user.trades });
+};
+
 module.exports = {
   getAllUsers,
   getTop200Users,
@@ -292,4 +366,5 @@ module.exports = {
   getTeamByUserAndByWeek,
   getWeeklyPointsByUser,
   getTotalPointsByUser,
+  getTradesByUser,
 };

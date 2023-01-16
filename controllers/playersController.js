@@ -85,6 +85,41 @@ const getAllPlayersInTeam = async (req, res) => {
   const userPlayers = await UserPlayer.find({
     weekId: selected.value,
     userId: req.user.userId,
+    isSubstitution: false,
+  });
+
+  let boughtPlayers = [];
+
+  for (let i = 0; i < userPlayers.length; i++) {
+    const player = players.find((p) => p.id === userPlayers[i].playerId);
+    boughtPlayers.push({
+      _id: player._id,
+      id: player.id,
+      name: player.name,
+      country: player.country,
+      points: player.points,
+      ranking: player.ranking,
+      price: player.price,
+      imageUrl: player.imageUrl,
+      gender: player.gender,
+      pointsWon: userPlayers[i].pointsWon,
+      balls: userPlayers[i].balls,
+    });
+  }
+
+  players = boughtPlayers;
+
+  res.status(StatusCodes.OK).json({ players });
+};
+
+const getAllSubstitutionsInTeam = async (req, res) => {
+  const { selected } = req.body;
+
+  let players = await Player.find({}).sort("ranking");
+  const userPlayers = await UserPlayer.find({
+    weekId: selected.value,
+    userId: req.user.userId,
+    isSubstitution: true,
   });
 
   let boughtPlayers = [];
@@ -183,9 +218,13 @@ const addPlayerInTeam = async (req, res) => {
     throw new BadRequestError("Deadline passed!");
   }
 
-  const userPlayers = await UserPlayer.find({ weekId, userId });
-  if (userPlayers.length >= 8) {
-    throw new BadRequestError("You already have 8 players in your team!");
+  const userPlayers = await UserPlayer.find({
+    weekId,
+    userId,
+  });
+
+  if (userPlayers.length >= 12) {
+    throw new BadRequestError("Your team is full!");
   }
 
   const userPlayer = await UserPlayer.findOne({ playerId, weekId, userId });
@@ -203,7 +242,13 @@ const addPlayerInTeam = async (req, res) => {
     );
   }
 
-  // check for date
+  const starters = await UserPlayer.find({
+    userId,
+    weekId,
+    isSubstitution: false,
+  });
+
+  const isSubstitution = starters.length >= 8;
 
   const playerInTeam = await UserPlayer.create({
     playerId,
@@ -211,6 +256,7 @@ const addPlayerInTeam = async (req, res) => {
     userId,
     pointsWon: 0,
     balls: 1,
+    isSubstitution,
   });
 
   await UserWeek.findOneAndUpdate(
@@ -222,6 +268,61 @@ const addPlayerInTeam = async (req, res) => {
   res
     .status(StatusCodes.CREATED)
     .json({ playerInTeam, msg: "Player added successfully to your team!" });
+};
+
+const performSubstitution = async (req, res) => {
+  const { substitutionId, starterId, weekId } = req.body;
+  const { userId } = req.user;
+
+  const user = await User.findOne({ _id: userId });
+  if (!user) {
+    throw new NotFoundError("User does not exist!");
+  }
+
+  if (user.trades <= 0) {
+    throw new BadRequestError("You don't have trades anymore!");
+  }
+
+  const week = await Week.findOne({ _id: weekId });
+
+  if (!week) {
+    throw new NotFoundError("Week does not exist!");
+  }
+
+  const end = new Date(week.to);
+  const current = new Date();
+
+  if (current >= end) {
+    throw new BadRequestError("Deadline passed!");
+  }
+
+  const starter = await UserPlayer.findOneAndUpdate(
+    { userId, weekId, playerId: starterId },
+    { isSubstitution: true, balls: 1 },
+    { runValidators: true, new: true }
+  );
+
+  if (!starter) {
+    throw new NotFoundError("Starter does not exist!");
+  }
+
+  const substitution = await UserPlayer.findOneAndUpdate(
+    { userId, weekId, playerId: substitutionId },
+    { isSubstitution: false, balls: starter.balls },
+    { runValidators: true, new: true }
+  );
+
+  if (!substitution) {
+    throw new NotFoundError("Substitution does not exist!");
+  }
+
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: userId },
+    { trades: user.trades - 1 },
+    { runValidators: true, new: true }
+  );
+
+  res.status(StatusCodes.OK).json({ substitution, starter, updatedUser });
 };
 
 const deletePlayerInTeam = async (req, res) => {
@@ -418,7 +519,11 @@ const calculatePointsForUserPlayers = async (req, res) => {
     throw new BadRequestError("You cannot update points for this week yet!");
   }
 
-  const userPlayers = await UserPlayer.find({ weekId, userId });
+  const userPlayers = await UserPlayer.find({
+    weekId,
+    userId,
+    isSubstitution: false,
+  });
   let weeklyPoints = 0;
 
   for (let i = 0; i < userPlayers.length; i++) {
@@ -560,7 +665,7 @@ const calculatePointsForUserPlayers = async (req, res) => {
 const calculateTotalPoints = async (req, res) => {
   const { userId } = req.user;
 
-  const userPlayers = await UserPlayer.find({ userId });
+  const userPlayers = await UserPlayer.find({ userId, isSubstitution: false });
   let totalPoints = 0;
 
   for (let i = 0; i < userPlayers.length; i++) {
@@ -618,9 +723,11 @@ module.exports = {
   getAll,
   getAllPlayers,
   getAllPlayersInTeam,
+  getAllSubstitutionsInTeam,
   getSinglePlayer,
   getSinglePlayerMatches,
   addPlayerInTeam,
+  performSubstitution,
   deletePlayerInTeam,
   addBallToUserPlayer,
   deleteBallFromUserPlayer,

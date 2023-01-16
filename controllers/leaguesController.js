@@ -197,6 +197,7 @@ const leaveLeague = async (req, res) => {
         bracketPoints: bracketPointsA,
         socialPoints: socialPointsA,
         leaguePoints: leaguePointsA,
+        predictionPoints: predictionPointsA,
         firstName: firstNameA,
         lastName: lastNameA,
       } = a;
@@ -205,14 +206,23 @@ const leaveLeague = async (req, res) => {
         bracketPoints: bracketPointsB,
         socialPoints: socialPointsB,
         leaguePoints: leaguePointsB,
+        predictionPoints: predictionPointsB,
         firstName: firstNameB,
         lastName: lastNameB,
       } = b;
 
       const totalPointsA =
-        pointsA + bracketPointsA + socialPointsA + leaguePointsA;
+        pointsA +
+        bracketPointsA +
+        socialPointsA +
+        leaguePointsA +
+        predictionPointsA;
       const totalPointsB =
-        pointsB + bracketPointsB + socialPointsB + leaguePointsB;
+        pointsB +
+        bracketPointsB +
+        socialPointsB +
+        leaguePointsB +
+        predictionPointsB;
 
       const fullNameA = firstNameA + lastNameA;
       const fullNameB = firstNameB + lastNameB;
@@ -230,12 +240,23 @@ const leaveLeague = async (req, res) => {
       }
     })
     .map((user, index) => {
-      const { points, bracketPoints, socialPoints, leaguePoints } = user;
+      const {
+        points,
+        bracketPoints,
+        socialPoints,
+        leaguePoints,
+        predictionPoints,
+      } = user;
 
       const resultUser = {
         ...user._doc,
         position: index + 1,
-        totalPoints: points + bracketPoints + socialPoints + leaguePoints,
+        totalPoints:
+          points +
+          bracketPoints +
+          socialPoints +
+          leaguePoints +
+          predictionPoints,
       };
 
       return resultUser;
@@ -352,8 +373,9 @@ const updatePoints = async (req, res) => {
 
   for (let i = 0; i < users.length; i++) {
     const user = users[i];
-    const { points, bracketPoints, socialPoints } = user;
-    const totalUserPoints = points + bracketPoints + socialPoints;
+    const { points, bracketPoints, socialPoints, predictionPoints } = user;
+    const totalUserPoints =
+      points + bracketPoints + socialPoints + predictionPoints;
     totalPoints += totalUserPoints;
   }
 

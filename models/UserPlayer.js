@@ -22,6 +22,10 @@ const UserPlayerSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please provide balls"],
     },
+    isSubstitution: {
+      type: Boolean,
+      required: [true, "Please provide player type"],
+    },
   },
   { timestamps: true }
 );

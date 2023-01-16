@@ -6,12 +6,15 @@ const {
   authorizePermissions,
 } = require("../middleware/authentication");
 const {
-  createPlayer,
-  updatePlayer,
   getAll,
   getAllPlayers,
   getAllPlayersInTeam,
+  getAllSubstitutionsInTeam,
+
+  createPlayer,
+  updatePlayer,
   addPlayerInTeam,
+  performSubstitution,
   deletePlayerInTeam,
   addBallToUserPlayer,
   deleteBallFromUserPlayer,
@@ -43,6 +46,11 @@ router
   .route("/team")
   .post(authenticateUser, getAllPlayersInTeam)
   .delete(authenticateUser, deletePlayerInTeam);
+
+router
+  .route("/substitutions")
+  .post(authenticateUser, getAllSubstitutionsInTeam)
+  .patch(authenticateUser, performSubstitution);
 
 router.route("/add").post(authenticateUser, addPlayerInTeam);
 router.route("/addBall").patch(authenticateUser, addBallToUserPlayer);

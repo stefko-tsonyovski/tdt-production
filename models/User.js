@@ -50,18 +50,33 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     required: [true, "Please provide league points"],
   },
+  predictionPoints: {
+    type: Number,
+    required: [true, "Please provide prediction points"],
+  },
   leagueId: {
     type: String,
   },
+  verificationToken: String,
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verified: Date,
   passwordToken: {
     type: String,
   },
   passwordTokenExpirationDate: {
     type: Date,
   },
+  trades: {
+    type: Number,
+    required: [true, "Please provide trades"],
+  },
 });
 
 UserSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });

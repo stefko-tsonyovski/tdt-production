@@ -8,6 +8,8 @@ const Country = require("./models/Country");
 const Tournament = require("./models/Tournament");
 const Player = require("./models/Player");
 const Match = require("./models/Match");
+const User = require("./models/User");
+const UserPlayer = require("./models/UserPlayer");
 
 const express = require("express");
 const app = express();
@@ -280,6 +282,14 @@ const updatePlayers = async () => {
   }
 };
 
+const updateUserPlayers = async () => {
+  await UserPlayer.updateMany({}, { $set: { isSubstitution: false } });
+};
+
+const updateUsers = async () => {
+  await User.updateMany({}, { $set: { predictionPoints: 100, trades: 60 } });
+};
+
 const addImagesToPlayers = async () => {
   const dbPlayers = await Player.find({}).sort("ranking");
   const absolutePath = path.join(__dirname, "ranking.json");
@@ -383,7 +393,7 @@ const start = async () => {
     // await seedPlayers();
 
     // Seed matches
-    //await seedMatches();
+    // await seedMatches();
 
     // Update players
     // await updatePlayers();
@@ -393,6 +403,12 @@ const start = async () => {
 
     // Update ranking
     // await updateRanking();
+
+    // Update users
+    // await updateUsers();
+
+    // Update user players
+    // await updateUserPlayers();
 
     console.log("Seeding successful!");
   } catch (error) {
