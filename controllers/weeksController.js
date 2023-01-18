@@ -36,14 +36,16 @@ const getWeek = async (req, res) => {
 };
 
 const getWeekByCurrentDate = async (req, res) => {
-  const date = Date.now();
+  const date = new Date();
   const weeks = await Week.find({});
 
   const week = weeks.find((week) => {
     const fromDate = new Date(week.from);
     const toDate = new Date(week.to);
 
-    return fromDate >= date && date <= toDate;
+    console.log(fromDate, toDate, date);
+
+    return date >= fromDate && date <= toDate;
   });
 
   res.status(StatusCodes.OK).json({ week });

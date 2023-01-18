@@ -6,6 +6,7 @@ const Match = require("../models/Match");
 const User = require("../models/User");
 const Tournament = require("../models/Tournament");
 const Favorite = require("../models/Favorite");
+const UserMatchPlayer = require("../models/UserMatchPlayer");
 
 const pointsSystem = require("../utils/pointsSystem");
 const parseDate = require("../utils/parseDate");
@@ -13,9 +14,10 @@ const parseDate = require("../utils/parseDate");
 const { StatusCodes } = require("http-status-codes");
 const { BadRequestError } = require("../errors");
 const { NotFoundError } = require("../errors");
+const Country = require("../models/Country");
 
 const createPlayer = async (req, res) => {
-  const players = await Player.find({}).sort("id");
+  const players = await Player.find({}).sort("id").lean();
   const player = await Player.create({
     ...req.body,
     id: players[players.length - 1].id + 1,
@@ -27,7 +29,7 @@ const updatePlayer = async (req, res) => {
   const { id } = req.params;
   const { inputModel } = req.body;
 
-  const player = await Player.findOne({ id: inputModel.id });
+  const player = await Player.findOne({ id: inputModel.id }).lean();
 
   if (!player) {
     throw new NotFoundError(`Not found player with id: ${id}`);
@@ -39,19 +41,37 @@ const updatePlayer = async (req, res) => {
 };
 
 const getAll = async (req, res) => {
-  const players = await Player.find({}).sort("ranking");
+  let players = await Player.find({}).sort("ranking").lean();
+
+  const countries = await Country.find({}).lean();
+
+  players = players.map((player) => {
+    const country = countries.find(
+      (c) => c.name.toLowerCase() === player.country.toLowerCase()
+    );
+
+    if (country) {
+      return {
+        ...player,
+        countryKey: country.key,
+      };
+    }
+
+    return player;
+  });
+
   res.status(StatusCodes.OK).json({ players });
 };
 
 const getAllPlayers = async (req, res) => {
   const { playerSearchItem, isBought, selected, page, itemsPerPage } = req.body;
 
-  let players = await Player.find({}).sort("ranking");
+  let players = await Player.find({}).sort("ranking").lean();
 
   const userPlayers = await UserPlayer.find({
     weekId: selected.value,
     userId: req.user.userId,
-  });
+  }).lean();
   let boughtPlayers = [];
 
   for (let i = 0; i < userPlayers.length; i++) {
@@ -81,12 +101,12 @@ const getAllPlayers = async (req, res) => {
 const getAllPlayersInTeam = async (req, res) => {
   const { selected } = req.body;
 
-  let players = await Player.find({}).sort("ranking");
+  let players = await Player.find({}).sort("ranking").lean();
   const userPlayers = await UserPlayer.find({
     weekId: selected.value,
     userId: req.user.userId,
     isSubstitution: false,
-  });
+  }).lean();
 
   let boughtPlayers = [];
 
@@ -115,12 +135,12 @@ const getAllPlayersInTeam = async (req, res) => {
 const getAllSubstitutionsInTeam = async (req, res) => {
   const { selected } = req.body;
 
-  let players = await Player.find({}).sort("ranking");
+  let players = await Player.find({}).sort("ranking").lean();
   const userPlayers = await UserPlayer.find({
     weekId: selected.value,
     userId: req.user.userId,
     isSubstitution: true,
-  });
+  }).lean();
 
   let boughtPlayers = [];
 
@@ -153,12 +173,21 @@ const getSinglePlayer = async (req, res) => {
     throw new BadRequestError("Provide player id");
   }
 
-  const player = await Player.findOne({ id: Number(id) });
+  const player = await Player.findOne({ id: Number(id) }).lean();
+  const country = await Country.findOne({
+    name: { $eq: player.country },
+  }).lean();
+
   if (!player) {
     throw new NotFoundError("Player does not exist");
   }
 
-  res.status(StatusCodes.OK).json({ player });
+  res.status(StatusCodes.OK).json({
+    player: {
+      ...player,
+      countryKey: country.key,
+    },
+  });
 };
 
 const getSinglePlayerMatches = async (req, res) => {
@@ -172,11 +201,11 @@ const getSinglePlayerMatches = async (req, res) => {
         awayId: { $eq: id },
       },
     ],
-  });
+  }).lean();
 
-  const players = await Player.find({});
-  const favorites = await Favorite.find({});
-  const tournaments = await Tournament.find({});
+  const players = await Player.find({}).lean();
+  const favorites = await Favorite.find({}).lean();
+  const tournaments = await Tournament.find({}).lean();
   const player = players.find((player) => player.id === Number(id));
 
   matches = matches.map((match) => {
@@ -190,10 +219,10 @@ const getSinglePlayerMatches = async (req, res) => {
       (favorite) => favorite.matchId === match.id && favorite.userId === userId
     )?._id;
     return {
-      ...match._doc,
-      tournament: { ...tournament._doc },
-      homePlayer: { ...homePlayer._doc },
-      awayPlayer: { ...awayPlayer._doc },
+      ...match,
+      tournament: { ...tournament },
+      homePlayer: { ...homePlayer },
+      awayPlayer: { ...awayPlayer },
       favoriteId,
     };
   });
@@ -205,7 +234,7 @@ const addPlayerInTeam = async (req, res) => {
   const { playerId, weekId } = req.body;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -221,20 +250,24 @@ const addPlayerInTeam = async (req, res) => {
   const userPlayers = await UserPlayer.find({
     weekId,
     userId,
-  });
+  }).lean();
 
   if (userPlayers.length >= 12) {
     throw new BadRequestError("Your team is full!");
   }
 
-  const userPlayer = await UserPlayer.findOne({ playerId, weekId, userId });
+  const userPlayer = await UserPlayer.findOne({
+    playerId,
+    weekId,
+    userId,
+  }).lean();
 
   if (userPlayer) {
     throw new BadRequestError("Player is already present in your team!");
   }
 
-  const player = await Player.findOne({ id: playerId });
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const player = await Player.findOne({ id: playerId }).lean();
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (player.price > userWeek.balance) {
     throw new BadRequestError(
@@ -246,7 +279,7 @@ const addPlayerInTeam = async (req, res) => {
     userId,
     weekId,
     isSubstitution: false,
-  });
+  }).lean();
 
   const isSubstitution = starters.length >= 8;
 
@@ -274,7 +307,7 @@ const performSubstitution = async (req, res) => {
   const { substitutionId, starterId, weekId } = req.body;
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new NotFoundError("User does not exist!");
   }
@@ -283,7 +316,7 @@ const performSubstitution = async (req, res) => {
     throw new BadRequestError("You don't have trades anymore!");
   }
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -298,7 +331,7 @@ const performSubstitution = async (req, res) => {
 
   const starter = await UserPlayer.findOneAndUpdate(
     { userId, weekId, playerId: starterId },
-    { isSubstitution: true, balls: 1 },
+    { isSubstitution: true },
     { runValidators: true, new: true }
   );
 
@@ -308,7 +341,11 @@ const performSubstitution = async (req, res) => {
 
   const substitution = await UserPlayer.findOneAndUpdate(
     { userId, weekId, playerId: substitutionId },
-    { isSubstitution: false, balls: starter.balls },
+    {
+      isSubstitution: false,
+      balls: starter.balls,
+      pointsWon: starter.pointsWon,
+    },
     { runValidators: true, new: true }
   );
 
@@ -329,7 +366,7 @@ const deletePlayerInTeam = async (req, res) => {
   const { playerId, weekId } = req.query;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -352,8 +389,8 @@ const deletePlayerInTeam = async (req, res) => {
     throw new NotFoundError("User player does not exist!");
   }
 
-  const player = await Player.findOne({ id: playerId });
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const player = await Player.findOne({ id: playerId }).lean();
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -369,7 +406,7 @@ const deletePlayerInTeam = async (req, res) => {
     { runValidators: true }
   );
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");
@@ -388,7 +425,7 @@ const addBallToUserPlayer = async (req, res) => {
   const { playerId, weekId } = req.body;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -401,7 +438,7 @@ const addBallToUserPlayer = async (req, res) => {
     throw new BadRequestError("Deadline passed!");
   }
 
-  const userWeek = await UserWeek.findOne({ weekId, userId });
+  const userWeek = await UserWeek.findOne({ weekId, userId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -415,7 +452,7 @@ const addBallToUserPlayer = async (req, res) => {
     playerId,
     weekId,
     userId,
-  });
+  }).lean();
 
   if (!oldUserPlayer) {
     throw new NotFoundError("User player does not exist!");
@@ -448,7 +485,7 @@ const deleteBallFromUserPlayer = async (req, res) => {
   const { playerId, weekId } = req.body;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -464,7 +501,7 @@ const deleteBallFromUserPlayer = async (req, res) => {
     playerId,
     weekId,
     userId,
-  });
+  }).lean();
 
   if (!oldUserPlayer) {
     throw new NotFoundError("User player does not exist!");
@@ -484,7 +521,7 @@ const deleteBallFromUserPlayer = async (req, res) => {
     { runValidators: true, new: true }
   );
 
-  const userWeek = await UserWeek.findOne({ weekId, userId });
+  const userWeek = await UserWeek.findOne({ weekId, userId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -503,7 +540,7 @@ const calculatePointsForUserPlayers = async (req, res) => {
   const { weekId } = req.body;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -523,27 +560,42 @@ const calculatePointsForUserPlayers = async (req, res) => {
     weekId,
     userId,
     isSubstitution: false,
-  });
+  }).lean();
   let weeklyPoints = 0;
 
   for (let i = 0; i < userPlayers.length; i++) {
     const userPlayer = userPlayers[i];
-    const { _id, balls } = userPlayer;
+    const { _id, balls, playerId, pointsWon } = userPlayer;
+
+    const userMatchPlayers = await UserMatchPlayer.find({
+      userId,
+      playerId,
+    }).lean();
 
     let homeMatches = await Match.find({
       homeId: userPlayer.playerId,
       round: "n/a",
-    });
-    homeMatches = homeMatches.filter(
-      (m) => new Date(m.date) >= start && new Date(m.date) <= end
-    );
+      status: "finished",
+    }).lean();
 
     let awayMatches = await Match.find({
       awayId: userPlayer.playerId,
       round: "n/a",
-    });
+      status: "finished",
+    }).lean();
+
+    homeMatches = homeMatches.filter(
+      (m) =>
+        !userMatchPlayers.some((ump) => ump.matchId === m.id) &&
+        new Date(m.date) >= start &&
+        new Date(m.date) <= end
+    );
+
     awayMatches = awayMatches.filter(
-      (m) => new Date(m.date) >= start && new Date(m.date) <= end
+      (m) =>
+        !userMatchPlayers.some((ump) => ump.matchId === m.id) &&
+        new Date(m.date) >= start &&
+        new Date(m.date) <= end
     );
 
     let homePoints = 0;
@@ -551,6 +603,7 @@ const calculatePointsForUserPlayers = async (req, res) => {
 
     for (let j = 0; j < homeMatches.length; j++) {
       const homeMatch = homeMatches[j];
+      await UserMatchPlayer.create({ userId, playerId, matchId: homeMatch.id });
 
       let {
         homeSets,
@@ -596,6 +649,7 @@ const calculatePointsForUserPlayers = async (req, res) => {
 
     for (let j = 0; j < awayMatches.length; j++) {
       const awayMatch = awayMatches[j];
+      await UserMatchPlayer.create({ userId, playerId, matchId: awayMatch.id });
 
       let {
         awaySets,
@@ -644,28 +698,32 @@ const calculatePointsForUserPlayers = async (req, res) => {
 
     await UserPlayer.findOneAndUpdate(
       { _id },
-      { pointsWon: totalPoints },
+      { pointsWon: totalPoints + pointsWon },
       { runValidators: true }
     );
   }
 
-  const userWeek = await UserWeek.findOneAndUpdate(
-    { userId, weekId },
-    { points: weeklyPoints },
-    { runValidators: true, new: true }
-  );
-
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
   }
 
-  res.status(StatusCodes.OK).json({ userWeek, weeklyPoints });
+  const updatedUserWeek = await UserWeek.findOneAndUpdate(
+    { userId, weekId },
+    { points: userWeek.points + weeklyPoints },
+    { runValidators: true, new: true }
+  );
+
+  res.status(StatusCodes.OK).json({ updatedUserWeek, weeklyPoints });
 };
 
 const calculateTotalPoints = async (req, res) => {
   const { userId } = req.user;
 
-  const userPlayers = await UserPlayer.find({ userId, isSubstitution: false });
+  const userPlayers = await UserPlayer.find({
+    userId,
+    isSubstitution: false,
+  }).lean();
   let totalPoints = 0;
 
   for (let i = 0; i < userPlayers.length; i++) {
@@ -692,7 +750,7 @@ const getWeeklyPoints = async (req, res) => {
   const { weekId } = req.query;
   const { userId } = req.user;
 
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -706,7 +764,7 @@ const getWeeklyPoints = async (req, res) => {
 const getTotalPoints = async (req, res) => {
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");

@@ -25,6 +25,7 @@ const havePickBeenMade = async (req, res) => {
 
 const getAllByUserAndByTournament = async (req, res) => {
   const { tournamentId } = req.params;
+  const { roundId } = req.query;
   const { userId } = req.user;
 
   const bracketsByTournament = await Bracket.find({
@@ -34,7 +35,8 @@ const getAllByUserAndByTournament = async (req, res) => {
   let picksByUser = await Pick.find({ userId });
   picksByUser = picksByUser.filter((p) =>
     bracketsByTournament.some(
-      (b) => b._id.toString() === p.bracketId.toString()
+      (b) =>
+        b._id.toString() === p.bracketId.toString() && b.roundId === roundId
     )
   );
 

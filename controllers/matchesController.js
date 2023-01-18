@@ -6,6 +6,7 @@ const Player = require("../models/Player");
 const Favorite = require("../models/Favorite");
 const Tournament = require("../models/Tournament");
 const Round = require("../models/Round");
+const Country = require("../models/Country");
 
 const getMatchesByTournamentIdAndDate = async (req, res) => {
   const { tournamentId, date } = req.query;
@@ -15,13 +16,13 @@ const getMatchesByTournamentIdAndDate = async (req, res) => {
     throw new BadRequestError("Provide tournament and date");
   }
 
-  const tournament = await Tournament.find({ id: tournamentId });
+  const tournament = await Tournament.find({ id: tournamentId }).lean();
 
   if (!tournament) {
     throw new NotFoundError(`No tournament with id ${tournamentId}`);
   }
 
-  let matches = await Match.find({ tournamentId });
+  let matches = await Match.find({ tournamentId }).lean();
   const players = await Player.find({
     id: {
       $in: [
@@ -33,9 +34,10 @@ const getMatchesByTournamentIdAndDate = async (req, res) => {
         }),
       ],
     },
-  });
+  }).lean();
 
-  const favorites = await Favorite.find({ userId });
+  const countries = await Country.find({}).lean();
+  const favorites = await Favorite.find({ userId }).lean();
 
   matches = matches
     .filter((match) => {
@@ -59,10 +61,18 @@ const getMatchesByTournamentIdAndDate = async (req, res) => {
         return undefined;
       }
 
+      const homeCountry = countries.find(
+        (c) => c.name?.toLowerCase() === homePlayer.country.toLowerCase()
+      );
+
+      const awayCountry = countries.find(
+        (c) => c.name?.toLowerCase() === awayPlayer.country.toLowerCase()
+      );
+
       return {
-        ...match._doc,
-        homePlayer: { ...homePlayer._doc },
-        awayPlayer: { ...awayPlayer._doc },
+        ...match,
+        homePlayer: { ...homePlayer, countryKey: homeCountry.key },
+        awayPlayer: { ...awayPlayer, countryKey: awayCountry.key },
         favoriteId,
       };
     })
@@ -73,33 +83,11 @@ const getMatchesByTournamentIdAndDate = async (req, res) => {
 
 const getSingleMatch = async (req, res) => {
   const { id } = req.params;
-  const match = await Match.findOne({ id: Number(id) });
+  const match = await Match.findOne({ id: Number(id) }).lean();
 
   if (!match) {
     throw new NotFoundError(`No match found with id: ${id}`);
   }
-
-  const homePlayer = await Player.findOne({ id: match.homeId });
-
-  if (!homePlayer) {
-    throw new NotFoundError("Home player does not exist!");
-  }
-
-  const awayPlayer = await Player.findOne({ id: match.awayId });
-
-  if (!awayPlayer) {
-    throw new NotFoundError("Away player does not exist!");
-  }
-
-  const winnerPlayer = await Player.findOne({ id: match.winnerId });
-
-  const round = await Round.findOne({ _id: match.roundId });
-
-  if (!round) {
-    throw new NotFoundError("Round does not exist!");
-  }
-
-  const tournament = await Tournament.findOne({ id: match.tournamentId });
 
   res.status(StatusCodes.OK).json({
     match,
@@ -108,36 +96,38 @@ const getSingleMatch = async (req, res) => {
 
 const getSingleMatchManual = async (req, res) => {
   const { id } = req.params;
-  const match = await Match.findOne({ id: Number(id) });
+  const match = await Match.findOne({ id: Number(id) }).lean();
 
   if (!match) {
     throw new NotFoundError(`No match found with id: ${id}`);
   }
 
-  const homePlayer = await Player.findOne({ id: match.homeId });
+  const homePlayer = await Player.findOne({ id: match.homeId }).lean();
 
   if (!homePlayer) {
     throw new NotFoundError("Home player does not exist!");
   }
 
-  const awayPlayer = await Player.findOne({ id: match.awayId });
+  const awayPlayer = await Player.findOne({ id: match.awayId }).lean();
 
   if (!awayPlayer) {
     throw new NotFoundError("Away player does not exist!");
   }
 
-  const winnerPlayer = await Player.findOne({ id: match.winnerId });
+  const winnerPlayer = await Player.findOne({ id: match.winnerId }).lean();
 
-  const round = await Round.findOne({ _id: match.roundId });
+  const round = await Round.findOne({ _id: match.roundId }).lean();
 
   if (!round) {
     throw new NotFoundError("Round does not exist!");
   }
 
-  const tournament = await Tournament.findOne({ id: match.tournamentId });
+  const tournament = await Tournament.findOne({
+    id: match.tournamentId,
+  }).lean();
 
   res.status(StatusCodes.OK).json({
-    ...match._doc,
+    ...match,
     homePlayer,
     awayPlayer,
     winnerPlayer,
@@ -149,16 +139,16 @@ const getSingleMatchManual = async (req, res) => {
 const getMatchesByTournamentIdAndRoundId = async (req, res) => {
   const { tournamentId, roundId } = req.query;
 
-  const players = await Player.find({});
-  let matches = await Match.find({ tournamentId, roundId });
+  const players = await Player.find({}).lean();
+  let matches = await Match.find({ tournamentId, roundId }).lean();
   matches = matches.map((match) => {
     const homePlayer = players.find((player) => player.id === match.homeId);
     const awayPlayer = players.find((player) => player.id === match.awayId);
 
     return {
-      ...match._doc,
-      homePlayer: { ...homePlayer._doc },
-      awayPlayer: { ...awayPlayer._doc },
+      ...match,
+      homePlayer: { ...homePlayer },
+      awayPlayer: { ...awayPlayer },
     };
   });
   res.status(StatusCodes.OK).json({ matches });
@@ -167,24 +157,20 @@ const getMatchesByTournamentIdAndRoundId = async (req, res) => {
 const getMatchesByTournamentIdGroupedByRoundId = async (req, res) => {
   const { tournamentId } = req.query;
 
-  let matches = await Match.find({ tournamentId });
-  let rounds = await Round.find({});
-  let players = await Player.find({});
+  let matches = await Match.find({ tournamentId }).lean();
+  let rounds = await Round.find({}).lean();
+  let players = await Player.find({}).lean();
 
   matches = matches.map((match) => {
-    const round = rounds.find((round) => round.id === match.roundId);
-
     const homePlayer = players.find((player) => player.id === match.homeId);
     const awayPlayer = players.find((player) => player.id === match.awayId);
 
     return {
-      ...match._doc,
-      homePlayer: { ...homePlayer._doc },
-      awayPlayer: { ...awayPlayer._doc },
+      ...match,
+      homePlayer: { ...homePlayer },
+      awayPlayer: { ...awayPlayer },
     };
   });
-
-  // let tournament = await Tournament.findOne({ tournamentId });
 
   const matchesByRound = matches.reduce((acc, value) => {
     if (!acc[value.roundId]) {
@@ -196,8 +182,9 @@ const getMatchesByTournamentIdGroupedByRoundId = async (req, res) => {
   }, {});
 
   matches = Object.keys(matchesByRound).map((key) => {
+    const round = rounds.find((round) => round._id.equals(key));
     return {
-      round: rounds.find((round) => round.id === key),
+      round,
       matches: matchesByRound[key],
     };
   });
@@ -208,8 +195,9 @@ const getMatchesByTournamentIdGroupedByRoundId = async (req, res) => {
 const getMatchesByPlayerGroupedByTournamentId = async (req, res) => {
   const { playerId } = req.query;
 
-  const players = await Player.find({});
-  const tournaments = await Tournament.find({});
+  const players = await Player.find({}).lean();
+  const tournaments = await Tournament.find({}).lean();
+  const countries = await Country.find({}).lean();
 
   let matches = await Match.find({
     $or: [
@@ -218,7 +206,7 @@ const getMatchesByPlayerGroupedByTournamentId = async (req, res) => {
         awayId: { $eq: playerId },
       },
     ],
-  });
+  }).lean();
 
   let result = matches
     .map((match) => {
@@ -227,13 +215,21 @@ const getMatchesByPlayerGroupedByTournamentId = async (req, res) => {
 
       if (!homePlayer || !awayPlayer) return undefined;
 
+      const homeCountry = countries.find(
+        (c) => c.name?.toLowerCase() === homePlayer.country.toLowerCase()
+      );
+
+      const awayCountry = countries.find(
+        (c) => c.name?.toLowerCase() === awayPlayer.country.toLowerCase()
+      );
+
       return {
-        ...match._doc,
-        homePlayer: { ...homePlayer._doc },
-        awayPlayer: { ...awayPlayer._doc },
+        ...match,
+        homePlayer: { ...homePlayer, countryKey: homeCountry.key },
+        awayPlayer: { ...awayPlayer, countryKey: awayCountry.key },
       };
     })
-    .filter((match) => match);
+    .filter((match) => Boolean(match));
 
   const groupedMatches = result.reduce((acc, value) => {
     if (!acc[value.tournamentId]) {
@@ -268,17 +264,18 @@ const getLastMatchesByPlayer = async (req, res) => {
     id: {
       $not: { $eq: skipMatchId },
     },
-  });
+  }).lean();
 
   const matchIds = matches.map((match) => match.id);
 
-  const players = await Player.find({});
+  const players = await Player.find({}).lean();
+  const countries = await Country.find({}).lean();
   const favorites = await Favorite.find({
     $in: matchIds,
-  });
+  }).lean();
   const tournaments = await Tournament.find({
     $in: matchIds,
-  });
+  }).lean();
 
   const player = players.find((player) => player.id === Number(playerId));
   if (surface.toLowerCase() !== "all") {
@@ -307,13 +304,17 @@ const getLastMatchesByPlayer = async (req, res) => {
         return undefined;
       }
 
-      console.log(homePlayer);
-      console.log(awayPlayer);
+      const homeCountry = countries.find(
+        (c) => c.name?.toLowerCase() === homePlayer.country.toLowerCase()
+      );
+      const awayCountry = countries.find(
+        (c) => c.name?.toLowerCase() === awayPlayer.country.toLowerCase()
+      );
 
       return {
-        ...match._doc,
-        homePlayer: { ...homePlayer._doc },
-        awayPlayer: { ...awayPlayer._doc },
+        ...match,
+        homePlayer: { ...homePlayer, countryKey: homeCountry.key },
+        awayPlayer: { ...awayPlayer, countryKey: awayCountry.key },
         favoriteId,
       };
     })
@@ -325,6 +326,9 @@ const getLastMatchesByPlayer = async (req, res) => {
 const getLastHedToHeadMatches = async (req, res) => {
   const { skipMatchId, homeId, awayId, surface } = req.body;
   const { userId } = req.user;
+
+  const favorites = await Favorite.find({}).lean();
+  const tournaments = await Tournament.find({}).lean();
 
   const matches = await Match.find({
     $or: [
@@ -340,10 +344,10 @@ const getLastHedToHeadMatches = async (req, res) => {
     id: {
       $not: skipMatchId,
     },
-  });
+  }).lean();
 
-  const homePlayer = await Player.findOne({ id: homeId });
-  const awayPlayer = await Player.findOne({ id: awayId });
+  const homePlayer = await Player.findOne({ id: homeId }).lean();
+  const awayPlayer = await Player.findOne({ id: awayId }).lean();
 
   // filter matches by surface
   matches = matches.filter((match) => {
@@ -362,7 +366,7 @@ const getLastHedToHeadMatches = async (req, res) => {
     )?._id;
 
     return {
-      ...match._doc,
+      ...match,
       homePlayer,
       awayPlayer,
       favoriteId,
@@ -374,13 +378,13 @@ const getLastHedToHeadMatches = async (req, res) => {
 
 const createMatch = async (req, res) => {
   const { homeId, awayId, winnerId } = req.body;
-  console.log(homeId);
-  const homePlayer = await Player.findOne({ id: homeId });
+
+  const homePlayer = await Player.findOne({ id: homeId }).lean();
   if (!homePlayer) {
     throw new BadRequestError("Player does not exist!");
   }
 
-  const awayPlayer = await Player.findOne({ id: awayId });
+  const awayPlayer = await Player.findOne({ id: awayId }).lean();
   if (!awayPlayer) {
     throw new BadRequestError("Player does not exist!");
   }
@@ -409,17 +413,17 @@ const updateMatch = async (req, res) => {
 
   console.log(homeId, awayId);
 
-  const match = await Match.findOne({ id: Number(id) });
+  const match = await Match.findOne({ id: Number(id) }).lean();
   if (!match) {
     throw new NotFoundError("Match does not exist!");
   }
 
-  const homePlayer = await Player.findOne({ id: homeId });
+  const homePlayer = await Player.findOne({ id: homeId }).lean();
   if (!homePlayer) {
     throw new NotFoundError("Player does not exist!");
   }
 
-  const awayPlayer = await Player.findOne({ id: awayId });
+  const awayPlayer = await Player.findOne({ id: awayId }).lean();
   if (!awayPlayer) {
     throw new NotFoundError("Player does not exist!");
   }

@@ -10,7 +10,7 @@ const {
 const { authenticateUser } = require("../middleware/authentication");
 
 router.route("/").post(authenticateUser, sendInvitation);
-router.route("/verify").post(authenticateUser, verifyInvitation);
+router.route("/verify").post(verifyInvitation);
 router.route("/byReceiver").get(authenticateUser, getAllReceivedInvitations);
 router.route("/bySender").get(authenticateUser, getAllSendedInvitations);
 

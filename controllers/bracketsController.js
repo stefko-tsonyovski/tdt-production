@@ -21,12 +21,21 @@ const getAllBracketsByTournamentId = async (req, res) => {
 };
 
 const getAllBracketsByTournamentIdAndRoundId = async (req, res) => {
-  const { tournamentId, roundId } = req.query;
+  const { tournamentId, roundId, page, itemsPerPage } = req.query;
+
+  console.log(page, itemsPerPage);
 
   let brackets = await Bracket.find({
     tournamentId: Number(tournamentId),
     roundId,
   }).lean();
+
+  const totalItems = brackets.length;
+
+  const start = (Number(page) - 1) * Number(itemsPerPage);
+  const end = start + Number(itemsPerPage);
+  brackets = brackets.slice(start, end);
+
   let resultBrackets = [];
 
   for (let i = 0; i < brackets.length; i++) {
@@ -44,7 +53,7 @@ const getAllBracketsByTournamentIdAndRoundId = async (req, res) => {
     resultBrackets.push(finalBracket);
   }
 
-  res.status(StatusCodes.OK).json({ brackets: resultBrackets });
+  res.status(StatusCodes.OK).json({ brackets: resultBrackets, totalItems });
 };
 
 const createBracket = async (req, res) => {

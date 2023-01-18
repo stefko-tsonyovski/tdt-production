@@ -3,14 +3,14 @@ const { StatusCodes } = require("http-status-codes");
 const { BadRequestError, NotFoundError } = require("../errors");
 
 const getAllCountries = async (req, res) => {
-  const countries = await Country.find({});
+  const countries = await Country.find({}).lean();
   res.status(StatusCodes.OK).json({ countries });
 };
 
 const createCountry = async (req, res) => {
   const { name } = req.body;
 
-  const countryNameAlreadyExists = await Country.findOne({ name });
+  const countryNameAlreadyExists = await Country.findOne({ name }).lean();
   if (countryNameAlreadyExists) {
     throw new BadRequestError("Country already exists!");
   }
@@ -24,7 +24,7 @@ const createCountry = async (req, res) => {
 
 const getCountry = async (req, res) => {
   const { id } = req.params;
-  const country = await Country.findOne({ _id: id });
+  const country = await Country.findOne({ _id: id }).lean();
 
   if (!country) {
     throw new NotFoundError("Country does not exist!");
@@ -37,7 +37,7 @@ const updateCountry = async (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
 
-  const countryNameAlreadyExists = await Country.findOne({ name });
+  const countryNameAlreadyExists = await Country.findOne({ name }).lean();
   if (countryNameAlreadyExists) {
     throw new BadRequestError("Country already exists!");
   }

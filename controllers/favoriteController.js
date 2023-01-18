@@ -5,10 +5,11 @@ const Favorite = require("../models/Favorite");
 const Match = require("../models/Match");
 const Player = require("../models/Player");
 const Tournament = require("../models/Tournament");
+const Country = require("../models/Country");
 
 const createFavorite = async (req, res) => {
   const { matchId } = req.body;
-  const match = await Match.find({ id: matchId });
+  const match = await Match.find({ id: matchId }).lean();
   const userId = req.user.userId;
 
   if (!match) {
@@ -23,12 +24,12 @@ const createFavorite = async (req, res) => {
 const getFavoriteMatchesByUser = async (req, res) => {
   const { userId } = req.user;
 
-  const favorites = await Favorite.find({ userId });
+  const favorites = await Favorite.find({ userId }).lean();
   let matches = await Match.find({
     id: {
       $in: favorites.map((favorite) => favorite.matchId),
     },
-  });
+  }).lean();
 
   const players = await Player.find({
     id: {
@@ -41,13 +42,15 @@ const getFavoriteMatchesByUser = async (req, res) => {
         }),
       ],
     },
-  });
+  }).lean();
+
+  const countries = await Country.find({}).lean();
 
   const tournaments = await Tournament.find({
     id: {
       $in: matches.map((match) => match.tournamentId),
     },
-  });
+  }).lean();
 
   matches = matches
     .map((match) => {
@@ -69,11 +72,19 @@ const getFavoriteMatchesByUser = async (req, res) => {
         return undefined;
       }
 
+      const homeCountry = countries.find(
+        (c) => c.name?.toLowerCase() === homePlayer.country.toLowerCase()
+      );
+
+      const awayCountry = countries.find(
+        (c) => c.name?.toLowerCase() === awayPlayer.country.toLowerCase()
+      );
+
       return {
-        ...match._doc,
-        homePlayer: { ...homePlayer._doc },
-        awayPlayer: { ...awayPlayer._doc },
-        tournament: { ...tournament._doc },
+        ...match,
+        homePlayer: { ...homePlayer, countryKey: homeCountry.key },
+        awayPlayer: { ...awayPlayer, countryKey: awayCountry.key },
+        tournament: { ...tournament },
         favoriteId: favoriteId,
       };
     })
@@ -136,7 +147,7 @@ const deleteFavorite = async (req, res) => {
   const { id: _id } = req.params;
 
   const userId = req.user.userId;
-  const favorite = await Favorite.find({ _id, userId });
+  const favorite = await Favorite.find({ _id, userId }).lean();
 
   if (!favorite) {
     throw new NotFoundError(`Cannot find favorite with id ${_id}`);

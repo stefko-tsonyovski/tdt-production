@@ -1,5 +1,5 @@
 const sendEmail = require("./sendEmail");
-const sendGrid = require("./sendgrid");
+const sendGrid = require("./sendGrid");
 
 const sendVerificationEmail = async ({
   name,

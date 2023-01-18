@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const UserWeek = require("../models/UserWeek");
 const Week = require("../models/Week");
+const Invitation = require("../models/Invitation");
 const { StatusCodes } = require("http-status-codes");
 const CustomError = require("../errors");
 const {
@@ -11,6 +12,7 @@ const {
   createHash,
 } = require("../utils");
 const crypto = require("crypto");
+const SOCIAL_POINTS = 5;
 
 const register = async (req, res) => {
   const { email, firstName, lastName, password } = req.body;
@@ -28,7 +30,7 @@ const register = async (req, res) => {
   const verificationToken = crypto.randomBytes(40).toString("hex");
 
   const userName = firstName + lastName;
-  const origin = "http://localhost:3000";
+  const origin = "https://tennisdreamteam-xqsa.onrender.com";
 
   const user = await User.create({
     firstName,
@@ -60,6 +62,8 @@ const register = async (req, res) => {
       balance: 80000000,
       points: 0,
       bracketPoints: 0,
+      predictionPoints: 0,
+      trades: 0,
     });
   }
 
@@ -149,7 +153,7 @@ const forgotPassword = async (req, res) => {
       name: userName,
       email: user.email,
       token: passwordToken,
-      origin: "http://localhost:3000",
+      origin: "https://tennisdreamteam-xqsa.onrender.com",
     });
 
     const tenMinutes = 1000 * 60 * 10;

@@ -10,6 +10,7 @@ const Player = require("./models/Player");
 const Match = require("./models/Match");
 const User = require("./models/User");
 const UserPlayer = require("./models/UserPlayer");
+const UserWeek = require("./models/UserWeek");
 
 const express = require("express");
 const app = express();
@@ -283,7 +284,8 @@ const updatePlayers = async () => {
 };
 
 const updateUserPlayers = async () => {
-  await UserPlayer.updateMany({}, { $set: { isSubstitution: false } });
+  await UserPlayer.updateMany({}, { $set: { pointsWon: 0 } });
+  await UserWeek.updateMany({}, { $set: { points: 0 } });
 };
 
 const updateUsers = async () => {

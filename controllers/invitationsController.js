@@ -1,21 +1,16 @@
 const { StatusCodes } = require("http-status-codes");
 const sendInvitationEmail = require("../utils/sendInvitationEmail");
-const { sendByGrid } = require("../utils/sendGrid");
 
 const SOCIAL_POINTS = 5;
 
 const Invitation = require("../models/Invitation");
-const {
-  NotFoundError,
-  UnauthorizedError,
-  BadRequestError,
-} = require("../errors");
+const { NotFoundError, BadRequestError } = require("../errors");
 const User = require("../models/User");
 
 const sendInvitation = async (req, res) => {
-  const { receiver: receiverEmail } = req.body;
+  const { email: receiverEmail } = req.body;
   const { userId } = req.user;
-  const sender = await User.findOne({ _id: userId });
+  const sender = await User.findOne({ _id: userId }).lean();
 
   if (!receiverEmail) {
     throw new BadRequestError("Please provide valid email.");
@@ -28,7 +23,7 @@ const sendInvitation = async (req, res) => {
 
     await sendInvitationEmail({
       email: receiverEmail,
-      origin: "http://localhost:3000",
+      origin: "https://tennisdreamteam-xqsa.onrender.com",
     });
 
     await Invitation.create({
@@ -41,39 +36,22 @@ const sendInvitation = async (req, res) => {
 };
 
 const verifyInvitation = async (req, res) => {
-  const { invitationId } = req.body;
-  const { userId } = req.user;
-  const receiver = await User.findOne({ _id: userId });
+  const { email: receiverEmail } = req.body;
 
-  const invitation = await Invitation.findOne({ _id: invitationId });
+  const invitation = await Invitation.findOne({ receiverEmail }).lean();
 
-  if (!invitation) {
-    throw new NotFoundError("Invitation not found");
+  if (invitation) {
+    const sender = await User.findOne({ _id: invitation.senderId }).lean();
+    if (sender) {
+      invitation.verified = true;
+      let result = sender.socialPoints;
+      result += SOCIAL_POINTS;
+      await User.findOneAndUpdate(
+        { _id: invitation.senderId },
+        { socialPoints: result }
+      );
+    }
   }
-
-  if (invitation.receiverEmail !== receiver.email) {
-    throw new UnauthorizedError(
-      "You are not authorized to verify this invitation"
-    );
-  }
-
-  const user = await User.findOne({ _id: invitation.senderId });
-
-  if (!user) {
-    throw new NotFoundError(
-      `User with id: ${invitation.senderId} was not found`
-    );
-  }
-
-  await Invitation.findOneAndUpdate({ _id: invitationId }, { verified: true });
-
-  let resultPoints = user.socialPoints;
-  resultPoints += SOCIAL_POINTS;
-
-  await User.findOneAndUpdate(
-    { _id: invitation.senderId },
-    { socialPoints: resultPoints }
-  );
 
   res.status(StatusCodes.OK).send();
 };
@@ -81,7 +59,7 @@ const verifyInvitation = async (req, res) => {
 const getAllSendedInvitations = async (req, res) => {
   const { userId } = req.user;
 
-  const invitations = await Invitation.find({ senderId: userId });
+  const invitations = await Invitation.find({ senderId: userId }).lean();
 
   res.status(StatusCodes.OK).json({ invitations });
 };
@@ -89,13 +67,15 @@ const getAllSendedInvitations = async (req, res) => {
 const getAllReceivedInvitations = async (req, res) => {
   const { userId } = req.user;
 
-  const receiver = await User.findOne({ _id: userId });
+  const receiver = await User.findOne({ _id: userId }).lean();
 
   if (!receiver) {
     throw new NotFoundError("Not found error");
   }
 
-  const invitations = await Invitation.find({ receiverEmail: receiver.email });
+  const invitations = await Invitation.find({
+    receiverEmail: receiver.email,
+  }).lean();
 
   res.status(StatusCodes.OK).json({ invitations });
 };

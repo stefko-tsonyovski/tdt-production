@@ -8,7 +8,7 @@ const { NotFoundError } = require("../errors");
 const { StatusCodes } = require("http-status-codes");
 
 const getAllUsers = async (req, res) => {
-  const users = await User.find({ role: "user" });
+  const users = await User.find({ role: "user" }).lean();
   res.status(StatusCodes.OK).json({ users });
 };
 
@@ -293,6 +293,7 @@ const getTeamByUserAndByWeek = async (req, res) => {
   const userPlayers = await UserPlayer.find({
     userId,
     weekId,
+    isSubstitution: false,
   });
 
   let boughtPlayers = [];
