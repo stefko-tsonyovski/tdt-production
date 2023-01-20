@@ -30,9 +30,9 @@ const getAllByUserAndByTournament = async (req, res) => {
 
   const bracketsByTournament = await Bracket.find({
     tournamentId: Number(tournamentId),
-  });
+  }).lean();
 
-  let picksByUser = await Pick.find({ userId });
+  let picksByUser = await Pick.find({ userId }).lean();
   picksByUser = picksByUser.filter((p) =>
     bracketsByTournament.some(
       (b) =>
@@ -47,19 +47,21 @@ const createPick = async (req, res) => {
   const { bracketId, playerId } = req.body;
   const { userId } = req.user;
 
-  const bracket = await Bracket.findOne({ _id: bracketId });
+  const bracket = await Bracket.findOne({ _id: bracketId }).lean();
 
   if (!bracket) {
     throw new NotFoundError("Bracket not found!");
   }
 
-  const tournament = await Tournament.findOne({ id: bracket.tournamentId });
+  const tournament = await Tournament.findOne({
+    id: bracket.tournamentId,
+  }).lean();
 
   if (!tournament) {
     throw new NotFoundError("Tournament not found!");
   }
 
-  const week = await Week.findOne({ _id: tournament.weekId });
+  const week = await Week.findOne({ _id: tournament.weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week not found!");
@@ -71,7 +73,7 @@ const createPick = async (req, res) => {
     tournamentId: tournament.id,
     homeId: bracket.homeId,
     awayId: bracket.awayId,
-  });
+  }).lean();
 
   if (!match) {
     throw new NotFoundError("Match does not exist!");
@@ -84,7 +86,7 @@ const createPick = async (req, res) => {
     throw new BadRequestError("Deadline passed!");
   }
 
-  const pickExists = await Pick.findOne({ bracketId, userId });
+  const pickExists = await Pick.findOne({ bracketId, userId }).lean();
 
   if (pickExists) {
     throw new BadRequestError("Pick already exists!");
@@ -99,19 +101,19 @@ const verifyPick = async (req, res) => {
   const { bracketId } = req.params;
   const { userId } = req.user;
 
-  const bracket = await Bracket.findOne({ _id: bracketId });
+  const bracket = await Bracket.findOne({ _id: bracketId }).lean();
   if (!bracket) {
     throw new NotFoundError("Bracket does not exist!");
   }
 
-  const pick = await Pick.findOne({ bracketId, userId });
+  const pick = await Pick.findOne({ bracketId, userId }).lean();
   if (!pick) {
     throw new NotFoundError("Pick does not exist!");
   }
 
   const { homeId, awayId, tournamentId } = bracket;
 
-  const match = await Match.findOne({ homeId, awayId, tournamentId });
+  const match = await Match.findOne({ homeId, awayId, tournamentId }).lean();
   if (match.status === "pending") {
     throw new BadRequestError("Result for this match is not available yet!");
   }
@@ -121,7 +123,7 @@ const verifyPick = async (req, res) => {
   }
 
   const pickDate = new Date(match.date);
-  const weeks = await Week.find({});
+  const weeks = await Week.find({}).lean();
 
   const week = weeks.find(
     (w) => pickDate >= new Date(w.from) && pickDate <= new Date(w.to)
@@ -140,7 +142,7 @@ const verifyPick = async (req, res) => {
   );
 
   if (pick.playerId === bracket.winnerId) {
-    const round = await Round.findOne({ _id: bracket.roundId });
+    const round = await Round.findOne({ _id: bracket.roundId }).lean();
 
     if (!round) {
       throw new NotFoundError("Round not found!");
@@ -176,7 +178,10 @@ const verifyPick = async (req, res) => {
         throw new NotFoundError("Invalid round name!");
     }
 
-    const userWeek = await UserWeek.findOne({ userId, weekId: week._id });
+    const userWeek = await UserWeek.findOne({
+      userId,
+      weekId: week._id,
+    }).lean();
     if (!userWeek) {
       throw new NotFoundError("User week does not exist!");
     }
@@ -195,7 +200,7 @@ const calculateWeeklyBracketPoints = async (req, res) => {
   const { weekId } = req.body;
   const { userId } = req.user;
 
-  const week = await Week.findOne({ _id: weekId });
+  const week = await Week.findOne({ _id: weekId }).lean();
 
   if (!week) {
     throw new NotFoundError("Week does not exist!");
@@ -211,7 +216,7 @@ const calculateWeeklyBracketPoints = async (req, res) => {
   //   throw new BadRequestError("You cannot update points for this week yet!");
   // }
 
-  let tournaments = await Tournament.find({ weekId });
+  let tournaments = await Tournament.find({ weekId }).lean();
   tournaments = tournaments.filter(
     (t) => current >= new Date(t.startDate) && current <= new Date(t.endDate)
   );
@@ -222,7 +227,7 @@ const calculateWeeklyBracketPoints = async (req, res) => {
     const tournament = tournaments[i];
     const { id } = tournament;
 
-    const brackets = await Bracket.find({ tournamentId: id });
+    const brackets = await Bracket.find({ tournamentId: id }).lean();
 
     for (let j = 0; j < brackets.length; j++) {
       const bracket = brackets[j];
@@ -236,7 +241,7 @@ const calculateWeeklyBracketPoints = async (req, res) => {
 
       const { name: roundName } = round;
 
-      const picks = await Pick.find({ userId, bracketId: _id });
+      const picks = await Pick.find({ userId, bracketId: _id }).lean();
 
       for (let k = 0; k < picks.length; k++) {
         const pick = picks[k];
@@ -291,7 +296,7 @@ const getWeeklyBracketPoints = async (req, res) => {
   const { weekId } = req.query;
   const { userId } = req.user;
 
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -306,7 +311,7 @@ const calculateTotalBracketPoints = async (req, res) => {
   const { userId } = req.user;
 
   const currentDate = new Date();
-  const userWeeks = await UserWeek.find({ userId });
+  const userWeeks = await UserWeek.find({ userId }).lean();
   let totalBracketPoints = 0;
 
   for (let i = 0; i < userWeeks.length; i++) {
@@ -332,7 +337,7 @@ const calculateTotalBracketPoints = async (req, res) => {
 const getTotalBracketPoints = async (req, res) => {
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");

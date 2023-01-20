@@ -11,7 +11,7 @@ const { BadRequestError, NotFoundError } = require("../errors");
 const getTop200Leagues = async (req, res) => {
   const { searchTerm } = req.query;
 
-  let leagues = await League.find({}).sort("-points");
+  let leagues = await League.find({}).sort("-points").lean();
   if (searchTerm) {
     leagues = leagues.filter((l) =>
       l.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -21,7 +21,7 @@ const getTop200Leagues = async (req, res) => {
   res.status(StatusCodes.OK).json({
     leagues: leagues.slice(0, 200).map((league, index) => {
       return {
-        ...league._doc,
+        ...league,
         position: index + 1,
       };
     }),
@@ -32,7 +32,7 @@ const createLeague = async (req, res) => {
   const { name } = req.body;
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");
@@ -42,7 +42,7 @@ const createLeague = async (req, res) => {
     throw new BadRequestError("You already have a league!");
   }
 
-  const dbLeague = await League.findOne({ name });
+  const dbLeague = await League.findOne({ name }).lean();
   if (dbLeague) {
     throw new BadRequestError("There is already a league with such a name!");
   }
@@ -65,13 +65,13 @@ const createLeague = async (req, res) => {
 const getLeague = async (req, res) => {
   const { id } = req.params;
 
-  const league = await League.findOne({ _id: id });
+  const league = await League.findOne({ _id: id }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
 
-  res.status(StatusCodes.OK).json({ ...league._doc });
+  res.status(StatusCodes.OK).json({ ...league });
 };
 
 const updateLeague = async (req, res) => {
@@ -79,7 +79,7 @@ const updateLeague = async (req, res) => {
   const { name } = req.body;
   const { userId } = req.user;
 
-  const league = await League.findOne({ _id: id });
+  const league = await League.findOne({ _id: id }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
@@ -91,7 +91,7 @@ const updateLeague = async (req, res) => {
     );
   }
 
-  const leagueExists = await League.findOne({ name });
+  const leagueExists = await League.findOne({ name }).lean();
 
   if (leagueExists) {
     throw new BadRequestError("League with such a name already exists!");
@@ -110,7 +110,7 @@ const deleteLeague = async (req, res) => {
   const { id } = req.params;
   const { userId } = req.user;
 
-  const league = await League.findOne({ _id: id });
+  const league = await League.findOne({ _id: id }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
@@ -121,9 +121,11 @@ const deleteLeague = async (req, res) => {
   }
 
   const deletedLeague = await League.findOneAndRemove({ _id: id });
-  const users = await User.find({ leagueId: id });
-  const requests = await Request.find({ leagueId: id });
-  const leagueInvitations = await LeagueInvitation.find({ leagueId: id });
+  const users = await User.find({ leagueId: id }).lean();
+  const requests = await Request.find({ leagueId: id }).lean();
+  const leagueInvitations = await LeagueInvitation.find({
+    leagueId: id,
+  }).lean();
 
   for (let i = 0; i < users.length; i++) {
     const user = users[i];
@@ -171,13 +173,13 @@ const leaveLeague = async (req, res) => {
   const { id } = req.params;
   const { userId } = req.user;
 
-  const league = await League.findOne({ _id: id });
+  const league = await League.findOne({ _id: id }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");
@@ -189,7 +191,7 @@ const leaveLeague = async (req, res) => {
     { runValidators: true, new: true }
   );
 
-  let users = await User.find({ role: "user", leagueId: id });
+  let users = await User.find({ role: "user", leagueId: id }).lean();
   users = users
     .sort((a, b) => {
       const {
@@ -249,7 +251,7 @@ const leaveLeague = async (req, res) => {
       } = user;
 
       const resultUser = {
-        ...user._doc,
+        ...user,
         position: index + 1,
         totalPoints:
           points +
@@ -268,8 +270,10 @@ const leaveLeague = async (req, res) => {
       throw new NotFoundError("League does not exist!");
     }
 
-    const requests = await Request.find({ leagueId: id });
-    const leagueInvitations = await LeagueInvitation.find({ leagueId: id });
+    const requests = await Request.find({ leagueId: id }).lean();
+    const leagueInvitations = await LeagueInvitation.find({
+      leagueId: id,
+    }).lean();
 
     for (let i = 0; i < requests.length; i++) {
       const request = requests[i];
@@ -312,17 +316,17 @@ const kickMember = async (req, res) => {
   const { memberId, leagueId } = req.query;
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new NotFoundError("User does not exist!");
   }
 
-  const member = await User.findOne({ _id: memberId });
+  const member = await User.findOne({ _id: memberId }).lean();
   if (!member) {
     throw new NotFoundError("Member does not exist!");
   }
 
-  const league = await League.findOne({ _id: leagueId });
+  const league = await League.findOne({ _id: leagueId }).lean();
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
@@ -337,7 +341,7 @@ const kickMember = async (req, res) => {
     throw new BadRequestError("Cannot kick yourself!");
   }
 
-  const members = await User.find({ leagueId });
+  const members = await User.find({ leagueId }).lean();
   if (!members.some((m) => m._id.toString() === member._id.toString())) {
     throw new BadRequestError(
       "The player you want to kick is not from your league!"
@@ -357,7 +361,7 @@ const updatePoints = async (req, res) => {
   const { id } = req.params;
   const { userId } = req.user;
 
-  const league = await League.findOne({ _id: id });
+  const league = await League.findOne({ _id: id }).lean();
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
@@ -368,7 +372,7 @@ const updatePoints = async (req, res) => {
     );
   }
 
-  const users = await User.find({ leagueId: id });
+  const users = await User.find({ leagueId: id }).lean();
   let totalPoints = 0;
 
   for (let i = 0; i < users.length; i++) {

@@ -3,14 +3,14 @@ const { StatusCodes } = require("http-status-codes");
 const { BadRequestError, NotFoundError } = require("../errors");
 
 const getAllWeeks = async (req, res) => {
-  const weeks = await Week.find({});
+  const weeks = await Week.find({}).lean();
   res.status(StatusCodes.OK).json({ weeks });
 };
 
 const createWeek = async (req, res) => {
   const { name, from, to } = req.body;
 
-  const weekAlreadyExists = await Week.findOne({ name });
+  const weekAlreadyExists = await Week.findOne({ name }).lean();
   if (weekAlreadyExists) {
     throw new BadRequestError("Week already exists!");
   }
@@ -27,7 +27,7 @@ const createWeek = async (req, res) => {
 const getWeek = async (req, res) => {
   const { id } = req.params;
 
-  const week = await Week.findOne({ _id: id });
+  const week = await Week.findOne({ _id: id }).lean();
   if (!week) {
     throw new NotFoundError("Week does not exist!");
   }
@@ -37,7 +37,7 @@ const getWeek = async (req, res) => {
 
 const getWeekByCurrentDate = async (req, res) => {
   const date = new Date();
-  const weeks = await Week.find({});
+  const weeks = await Week.find({}).lean();
 
   const week = weeks.find((week) => {
     const fromDate = new Date(week.from);

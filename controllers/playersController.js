@@ -45,7 +45,7 @@ const getAll = async (req, res) => {
 
   const countries = await Country.find({}).lean();
 
-  players = players.map((player) => {
+  players = players.slice(0, 100).map((player) => {
     const country = countries.find(
       (c) => c.name.toLowerCase() === player.country.toLowerCase()
     );
@@ -67,6 +67,7 @@ const getAllPlayers = async (req, res) => {
   const { playerSearchItem, isBought, selected, page, itemsPerPage } = req.body;
 
   let players = await Player.find({}).sort("ranking").lean();
+  players = players.slice(0, 100);
 
   const userPlayers = await UserPlayer.find({
     weekId: selected.value,

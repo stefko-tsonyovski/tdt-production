@@ -1,7 +1,6 @@
 require("dotenv").config();
 require("express-async-errors");
 const path = require("path");
-
 // REMOVE PROXY IN REACT APP BEFORE DEPLOY!!!!!!!!
 
 const morgan = require("morgan");

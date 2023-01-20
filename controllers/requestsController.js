@@ -11,7 +11,7 @@ const getAllUnapprovedRequestsByLeagueId = async (req, res) => {
   const { leagueId } = req.params;
   const { userId } = req.user;
 
-  const league = await League.findOne({ _id: leagueId });
+  const league = await League.findOne({ _id: leagueId }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
@@ -21,14 +21,14 @@ const getAllUnapprovedRequestsByLeagueId = async (req, res) => {
     throw new BadRequestError("Only creator has access to this information!");
   }
 
-  const requests = await Request.find({ leagueId, isApproved: false });
+  const requests = await Request.find({ leagueId, isApproved: false }).lean();
   let resultRequests = [];
 
   for (let i = 0; i < requests.length; i++) {
     const request = requests[i];
     const { _id, leagueId, creatorId, createdAt } = request;
 
-    const user = await User.findOne({ _id: creatorId });
+    const user = await User.findOne({ _id: creatorId }).lean();
     if (!user) {
       throw new NotFoundError("User does not exist!");
     }
@@ -58,12 +58,12 @@ const createRequest = async (req, res) => {
   const { leagueId } = req.body;
   const { userId: creatorId } = req.user;
 
-  const usersByLeague = await User.find({ leagueId });
+  const usersByLeague = await User.find({ leagueId }).lean();
   if (usersByLeague.some((u) => u._id.toString() === creatorId.toString())) {
     throw new BadRequestError("You are already part of this league!");
   }
 
-  const requestExists = await Request.findOne({ leagueId, creatorId });
+  const requestExists = await Request.findOne({ leagueId, creatorId }).lean();
   if (requestExists) {
     throw new BadRequestError(
       "You have already made a request to this league!"
@@ -83,12 +83,12 @@ const approveRequest = async (req, res) => {
   const { creatorId, leagueId } = req.query;
   const { userId } = req.user;
 
-  const request = await Request.findOne({ creatorId, leagueId });
+  const request = await Request.findOne({ creatorId, leagueId }).lean();
   if (!request) {
     throw new NotFoundError("Request does not exist!");
   }
 
-  const league = await League.findOne({ _id: request.leagueId });
+  const league = await League.findOne({ _id: request.leagueId }).lean();
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }

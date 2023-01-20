@@ -13,7 +13,7 @@ const getAllUsers = async (req, res) => {
 };
 
 const getTop200Users = async (req, res) => {
-  let users = await User.find({ role: "user" });
+  let users = await User.find({ role: "user" }).lean();
   users = users
     .sort((a, b) => {
       const {
@@ -74,7 +74,7 @@ const getTop200Users = async (req, res) => {
       } = user;
 
       const resultUser = {
-        ...user._doc,
+        ...user,
         position: index + 1,
         totalPoints:
           points +
@@ -94,13 +94,13 @@ const getUsersByLeague = async (req, res) => {
   const { leagueId } = req.params;
   const { searchTerm } = req.query;
 
-  const league = await League.findOne({ _id: leagueId });
+  const league = await League.findOne({ _id: leagueId }).lean();
 
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
 
-  let users = await User.find({ role: "user", leagueId });
+  let users = await User.find({ role: "user", leagueId }).lean();
 
   if (searchTerm) {
     users = users.filter((u) =>
@@ -170,7 +170,7 @@ const getUsersByLeague = async (req, res) => {
       } = user;
 
       const resultUser = {
-        ...user._doc,
+        ...user,
         position: index + 1,
         totalPoints:
           points +
@@ -193,7 +193,7 @@ const getUsersByLeague = async (req, res) => {
 
 const getCurrentUserPosition = async (req, res) => {
   const { userId } = req.user;
-  let users = await User.find({ role: "user" });
+  let users = await User.find({ role: "user" }).lean();
   users = users
     .sort((a, b) => {
       const {
@@ -253,7 +253,7 @@ const getCurrentUserPosition = async (req, res) => {
       } = user;
 
       const resultUser = {
-        ...user._doc,
+        ...user,
         position: index + 1,
         totalPoints:
           points +
@@ -266,14 +266,14 @@ const getCurrentUserPosition = async (req, res) => {
       return resultUser;
     });
 
-  const currentUser = await User.findOne({ _id: userId });
+  const currentUser = await User.findOne({ _id: userId }).lean();
 
   const result = users.find(
     (u) => u._id.toString() === currentUser._id.toString()
   );
 
-  const leagues = await League.find({}).sort("-points");
-  const league = await League.findOne({ _id: currentUser.leagueId });
+  const leagues = await League.find({}).sort("-points").lean();
+  const league = await League.findOne({ _id: currentUser.leagueId }).lean();
 
   const leagueIndex = league
     ? leagues.findIndex((l) => l.name === league.name)
@@ -286,15 +286,26 @@ const getCurrentUserPosition = async (req, res) => {
   });
 };
 
+const getUser = async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findOne({ _id: id }).lean();
+  if (!user) {
+    throw new NotFoundError("User does not exist!");
+  }
+
+  res.status(StatusCodes.OK).json({ user });
+};
+
 const getTeamByUserAndByWeek = async (req, res) => {
   const { userId, weekId } = req.query;
 
-  let players = await Player.find({}).sort("ranking");
+  let players = await Player.find({}).sort("ranking").lean();
   const userPlayers = await UserPlayer.find({
     userId,
     weekId,
     isSubstitution: false,
-  });
+  }).lean();
 
   let boughtPlayers = [];
 
@@ -323,7 +334,7 @@ const getTeamByUserAndByWeek = async (req, res) => {
 const getWeeklyPointsByUser = async (req, res) => {
   const { userId, weekId } = req.query;
 
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (!userWeek) {
     throw new NotFoundError("User week does not exist!");
@@ -337,7 +348,7 @@ const getWeeklyPointsByUser = async (req, res) => {
 const getTotalPointsByUser = async (req, res) => {
   const { userId } = req.query;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new NotFoundError("User does not exist!");
@@ -351,7 +362,7 @@ const getTotalPointsByUser = async (req, res) => {
 const getTradesByUser = async (req, res) => {
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new NotFoundError("User does not exist!");
   }
@@ -368,4 +379,5 @@ module.exports = {
   getWeeklyPointsByUser,
   getTotalPointsByUser,
   getTradesByUser,
+  getUser,
 };

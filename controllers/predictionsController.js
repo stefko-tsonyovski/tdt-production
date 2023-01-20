@@ -71,7 +71,7 @@ const getAllUnapprovedPredictions = async (req, res) => {
     const prediction = predictions[i];
     const { creatorId } = prediction;
 
-    const user = await User.findOne({ _id: creatorId });
+    const user = await User.findOne({ _id: creatorId }).lean();
     if (!user) {
       throw new NotFoundError("User does not exist!");
     }
@@ -233,12 +233,12 @@ const createVotePrediction = async (req, res) => {
   const { userId: creatorId } = req.user;
   const { answer } = req.body;
 
-  const voter = await User.findOne({ _id: creatorId });
+  const voter = await User.findOne({ _id: creatorId }).lean();
   if (!voter) {
     throw new NotFoundError("User does not exist");
   }
 
-  const prediction = await Prediction.findOne({ _id: predictionId });
+  const prediction = await Prediction.findOne({ _id: predictionId }).lean();
   if (!prediction) {
     throw new NotFoundError("Prediction does not exist!");
   }
@@ -246,7 +246,7 @@ const createVotePrediction = async (req, res) => {
   const voterPrediction = await UserPrediction.findOne({
     userId: creatorId,
     predictionId,
-  });
+  }).lean();
   if (voterPrediction) {
     throw new BadRequestError("You already have vote for this prediction!");
   }
@@ -282,13 +282,13 @@ const verifyVotedPrediction = async (req, res) => {
 
   const prediction = await Prediction.findOne({
     _id: votePrediction.predictionId,
-  });
+  }).lean();
 
   if (prediction.answer === "none") {
     throw new BadRequestError("No update for prediction!");
   }
 
-  const user = await User.findOne({ _id: creatorId });
+  const user = await User.findOne({ _id: creatorId }).lean();
 
   if (prediction.answer === votePrediction.answer) {
     user.predictionPoints += PREDICTION_POINTS;

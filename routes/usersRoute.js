@@ -11,6 +11,7 @@ const {
   getWeeklyPointsByUser,
   getTotalPointsByUser,
   getTradesByUser,
+  getUser,
 } = require("../controllers/usersController");
 
 router.route("/").get(authenticateUser, getTop200Users);
@@ -21,5 +22,6 @@ router.route("/weekly").get(authenticateUser, getWeeklyPointsByUser);
 router.route("/total").get(authenticateUser, getTotalPointsByUser);
 router.route("/trades").get(authenticateUser, getTradesByUser);
 router.route("/byLeague/:leagueId").get(authenticateUser, getUsersByLeague);
+router.route("/:id").get(authenticateUser, getUser);
 
 module.exports = router;

@@ -6,7 +6,7 @@ const getUserWeek = async (req, res) => {
   const { weekId } = req.params;
   const { userId } = req.user;
 
-  const userWeek = await UserWeek.findOne({ userId, weekId });
+  const userWeek = await UserWeek.findOne({ userId, weekId }).lean();
 
   if (!userWeek) {
     return new BadRequestError("User week does not exist!");

@@ -3,7 +3,7 @@ const { StatusCodes } = require("http-status-codes");
 const { NotFoundError } = require("../errors");
 
 const getAllRounds = async (req, res) => {
-  const rounds = await Round.find({});
+  const rounds = await Round.find({}).lean();
   res.status(StatusCodes.OK).json({ rounds });
 };
 

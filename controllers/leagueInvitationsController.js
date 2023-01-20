@@ -10,14 +10,14 @@ const { NotFoundError, BadRequestError } = require("../errors");
 const getAllLeagueInvitationsByReceiverId = async (req, res) => {
   const { userId: receiverId } = req.user;
 
-  const leagueInvitations = await LeagueInvitation.find({ receiverId });
+  const leagueInvitations = await LeagueInvitation.find({ receiverId }).lean();
   let resultLeagueInvitations = [];
 
   for (let i = 0; i < leagueInvitations.length; i++) {
     const leagueInvitation = leagueInvitations[i];
     const { _id, leagueId, receiverId, createdAt } = leagueInvitation;
 
-    const league = await League.findOne({ _id: leagueId });
+    const league = await League.findOne({ _id: leagueId }).lean();
     if (!league) {
       throw new NotFoundError("League does not exist!");
     }
@@ -47,7 +47,7 @@ const createInvitation = async (req, res) => {
   const { userId } = req.user;
   const { leagueId, receiverId } = req.body;
 
-  const league = await League.findOne({ _id: leagueId });
+  const league = await League.findOne({ _id: leagueId }).lean();
   if (!league) {
     throw new NotFoundError("League does not exist!");
   }
@@ -59,13 +59,13 @@ const createInvitation = async (req, res) => {
   const leagueInvitationExists = await LeagueInvitation.findOne({
     leagueId,
     receiverId,
-  });
+  }).lean();
 
   if (leagueInvitationExists) {
     throw new BadRequestError("You have already invited this player!");
   }
 
-  const receiver = await User.findOne({ _id: receiverId });
+  const receiver = await User.findOne({ _id: receiverId }).lean();
   if (!receiver) {
     throw new NotFoundError("Receiver does not exist!");
   }
@@ -85,7 +85,7 @@ const acceptInvitation = async (req, res) => {
   const { userId } = req.user;
   const { id } = req.params;
 
-  const leagueInvitation = await LeagueInvitation.findOne({ _id: id });
+  const leagueInvitation = await LeagueInvitation.findOne({ _id: id }).lean();
   if (!leagueInvitation) {
     throw new NotFoundError("League invitation does not exist!");
   }
@@ -94,7 +94,7 @@ const acceptInvitation = async (req, res) => {
     throw new BadRequestError("This invitation is not for you!");
   }
 
-  const user = await User.findOne({ _id: userId });
+  const user = await User.findOne({ _id: userId }).lean();
   if (!user) {
     throw new NotFoundError("User does not exist!");
   }
