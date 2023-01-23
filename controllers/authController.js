@@ -67,6 +67,22 @@ const register = async (req, res) => {
     });
   }
 
+  const invitation = await Invitation.findOne({
+    receiverEmail: user.email,
+  }).lean();
+
+  if (invitation) {
+    const sender = await User.findOne({ _id: invitation.senderId }).lean();
+    if (!sender) {
+      throw new CustomError.NotFoundError("Sender does not exist!");
+    }
+
+    await User.findOneAndUpdate({
+      _id: invitation.senderId,
+      socialPoints: sender.socialPoints + SOCIAL_POINTS,
+    });
+  }
+
   // const tokenUser = createTokenUser(user);
   // attachCookiesToResponse({ res, user: tokenUser });
 

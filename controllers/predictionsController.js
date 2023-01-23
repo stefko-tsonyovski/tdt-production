@@ -6,6 +6,7 @@ const { StatusCodes } = require("http-status-codes");
 const { NotFoundError, BadRequestError } = require("../errors");
 
 const PREDICTION_POINTS = 6;
+const INVEST_POINTS = 3;
 
 const getAllApprovedPredictions = async (req, res) => {
   const { page, itemsPerPage } = req.query;
@@ -204,14 +205,6 @@ const approvePrediction = async (req, res) => {
   res.status(StatusCodes.OK).json({ prediction });
 };
 
-const getPredictionPointsByUser = async (req, res) => {
-  const { userId } = req.user;
-
-  const user = await User.findOne({ _id: userId }).lean();
-
-  res.status(StatusCodes.OK).json({ predictionPoints: user.predictionPoints });
-};
-
 const updatePredictionAnswer = async (req, res) => {
   const { id } = req.params;
   const { answer } = req.body;
@@ -247,9 +240,17 @@ const createVotePrediction = async (req, res) => {
     userId: creatorId,
     predictionId,
   }).lean();
+
   if (voterPrediction) {
     throw new BadRequestError("You already have vote for this prediction!");
   }
+
+  let voterPredictionPoints = voter.predictionPoints;
+  voterPredictionPoints -= INVEST_POINTS;
+  await User.findOneAndUpdate(
+    { _id: creatorId },
+    { predictionPoints: voterPredictionPoints }
+  );
 
   await UserPrediction.create(
     {
@@ -288,12 +289,16 @@ const verifyVotedPrediction = async (req, res) => {
     throw new BadRequestError("No update for prediction!");
   }
 
-  const user = await User.findOne({ _id: creatorId }).lean();
+  const user = await User.findOne({ _id: creatorId });
 
   if (prediction.answer === votePrediction.answer) {
-    user.predictionPoints += PREDICTION_POINTS;
-    receivedPoints = PREDICTION_POINTS;
-    user.save();
+    let resultPoints = user.predictionPoints;
+    resultPoints += PREDICTION_POINTS;
+
+    await User.findOneAndUpdate(
+      { _id: creatorId },
+      { predictionPoints: resultPoints }
+    );
   }
 
   await UserPrediction.findOneAndUpdate(
@@ -320,7 +325,6 @@ module.exports = {
   getAllUnapprovedPredictions,
   getTotalPredictionPoints,
   getAllVotedPredictionsByUser,
-  getPredictionPointsByUser,
   createPrediction,
   approvePrediction,
   updatePredictionAnswer,

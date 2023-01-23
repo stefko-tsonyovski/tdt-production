@@ -35,6 +35,35 @@ const getWeek = async (req, res) => {
   res.status(StatusCodes.OK).json({ week });
 };
 
+const getCountdown = async (req, res) => {
+  const { weekId } = req.query;
+  console.log(weekId);
+  const week = await Week.findOne({ _id: weekId });
+  if (!week) {
+    throw new NotFoundError("Week does not exist!");
+  }
+
+  const countdownDateTime = new Date(week.from).getTime();
+  const currentTime = new Date().getTime();
+  const remainingDayTime = countdownDateTime - currentTime;
+  const totalDays = Math.floor(remainingDayTime / (1000 * 60 * 60 * 24));
+  const totalHours = Math.floor(
+    (remainingDayTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+  );
+  const totalMinutes = Math.floor(
+    (remainingDayTime % (1000 * 60 * 60)) / (1000 * 60)
+  );
+  const totalSeconds = Math.floor((remainingDayTime % (1000 * 60)) / 1000);
+  const runningCountdownTime = {
+    countdownDays: totalDays,
+    countdownHours: totalHours,
+    countdownMinutes: totalMinutes,
+    countdownSeconds: totalSeconds,
+  };
+
+  res.status(StatusCodes.OK).json({ ...runningCountdownTime });
+};
+
 const getWeekByCurrentDate = async (req, res) => {
   const date = new Date();
   const weeks = await Week.find({}).lean();
@@ -42,8 +71,6 @@ const getWeekByCurrentDate = async (req, res) => {
   const week = weeks.find((week) => {
     const fromDate = new Date(week.from);
     const toDate = new Date(week.to);
-
-    console.log(fromDate, toDate, date);
 
     return date >= fromDate && date <= toDate;
   });
@@ -91,6 +118,7 @@ module.exports = {
   getAllWeeks,
   createWeek,
   getWeek,
+  getCountdown,
   getWeekByCurrentDate,
   updateWeek,
   deleteWeek,

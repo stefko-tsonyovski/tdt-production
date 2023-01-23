@@ -193,6 +193,7 @@ const getUsersByLeague = async (req, res) => {
 
 const getCurrentUserPosition = async (req, res) => {
   const { userId } = req.user;
+  console.log(userId);
   let users = await User.find({ role: "user" }).lean();
   users = users
     .sort((a, b) => {
@@ -272,17 +273,23 @@ const getCurrentUserPosition = async (req, res) => {
     (u) => u._id.toString() === currentUser._id.toString()
   );
 
-  const leagues = await League.find({}).sort("-points").lean();
-  const league = await League.findOne({ _id: currentUser.leagueId }).lean();
+  if (result.leagueId) {
+    const leagues = await League.find({}).sort("-points").lean();
+    const league = await League.findOne({ _id: currentUser.leagueId }).lean();
 
-  const leagueIndex = league
-    ? leagues.findIndex((l) => l.name === league.name)
-    : -1;
+    const leagueIndex = league
+      ? leagues.findIndex((l) => l.name === league.name)
+      : -1;
+
+    res.status(StatusCodes.OK).json({
+      ...result,
+      leaguePosition: leagueIndex + 1,
+      leagueId: league?._id,
+    });
+  }
 
   res.status(StatusCodes.OK).json({
     ...result,
-    leaguePosition: leagueIndex + 1,
-    leagueId: league?._id,
   });
 };
 

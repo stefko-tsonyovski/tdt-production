@@ -7,7 +7,7 @@ const InvitationSchema = mongoose.Schema({
   },
   receiverEmail: {
     type: String,
-    required: [true, "Please provide sender Id"],
+    required: [true, "Please provide receiver email"],
   },
   verified: {
     type: Boolean,

@@ -1,5 +1,6 @@
 require("dotenv").config();
 require("express-async-errors");
+
 const path = require("path");
 // REMOVE PROXY IN REACT APP BEFORE DEPLOY!!!!!!!!
 
@@ -39,6 +40,7 @@ const leaguesRoute = require("./routes/leaguesRoute");
 const requestsRoute = require("./routes/requestsRoute");
 const leagueInvitationsRoute = require("./routes/leagueInvitationsRouter");
 const predictionsRoute = require("./routes/predictionsRoute");
+const searchesRoute = require("./routes/searchesRoute");
 
 // error handler
 const notFoundMiddleware = require("./middleware/not-found");
@@ -82,6 +84,7 @@ app.use("/api/v1/leagues", leaguesRoute);
 app.use("/api/v1/requests", requestsRoute);
 app.use("/api/v1/leagueInvitations", leagueInvitationsRoute);
 app.use("/api/v1/predictions", predictionsRoute);
+app.use("/api/v1", searchesRoute);
 
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "./client/build", "index.html"));

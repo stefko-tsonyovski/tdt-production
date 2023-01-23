@@ -83,14 +83,20 @@ const getMatchesByTournamentIdAndDate = async (req, res) => {
 
 const getSingleMatch = async (req, res) => {
   const { id } = req.params;
+
   const match = await Match.findOne({ id: Number(id) }).lean();
 
   if (!match) {
     throw new NotFoundError(`No match found with id: ${id}`);
   }
 
+  const round = await Round.findOne({ _id: match.roundId }).lean();
+
   res.status(StatusCodes.OK).json({
-    match,
+    match: {
+      ...match,
+      round: round?.name ?? "n/a",
+    },
   });
 };
 

@@ -10,6 +10,7 @@ const {
   getAllWeeks,
   createWeek,
   getWeek,
+  getCountdown,
   getWeekByCurrentDate,
   updateWeek,
   deleteWeek,
@@ -21,6 +22,8 @@ router
   .post(authenticateUser, authorizePermissions("admin", "owner"), createWeek);
 
 router.route("/byCurrentDate").get(authenticateUser, getWeekByCurrentDate);
+
+router.route("/countdown").get(authenticateUser, getCountdown);
 
 router
   .route("/:id")

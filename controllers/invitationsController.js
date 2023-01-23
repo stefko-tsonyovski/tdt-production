@@ -8,7 +8,7 @@ const { NotFoundError, BadRequestError } = require("../errors");
 const User = require("../models/User");
 
 const sendInvitation = async (req, res) => {
-  const { email: receiverEmail } = req.body;
+  const { receiver: receiverEmail } = req.body;
   const { userId } = req.user;
   const sender = await User.findOne({ _id: userId }).lean();
 
@@ -17,6 +17,15 @@ const sendInvitation = async (req, res) => {
   }
 
   if (sender) {
+    const invitationExists = await Invitation.findOne({
+      receiverEmail,
+    });
+    if (invitationExists) {
+      throw new BadRequestError(
+        `Player with email: ${receiverEmail} has been already invited to the game!`
+      );
+    }
+
     if (sender.email === receiverEmail) {
       throw new BadRequestError("Cannot send email to yourself");
     }

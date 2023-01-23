@@ -16,7 +16,6 @@ const {
   approvePrediction,
   updatePredictionAnswer,
   deletePrediction,
-  getPredictionPointsByUser,
 } = require("../controllers/predictionsController");
 
 router.route("/approved").get(authenticateUser, getAllApprovedPredictions);
@@ -44,7 +43,6 @@ router
     authorizePermissions("admin", "owner"),
     approvePrediction
   );
-router.route("/pointsByUser").get(authenticateUser, getPredictionPointsByUser);
 router.route("/vote/:id").post(authenticateUser, createVotePrediction);
 router.route("/verify/:id").post(authenticateUser, verifyVotedPrediction);
 router

@@ -32,7 +32,7 @@ const createLeague = async (req, res) => {
   const { name } = req.body;
   const { userId } = req.user;
 
-  const user = await User.findOne({ _id: userId }).lean();
+  const user = await User.findOne({ _id: userId });
 
   if (!user) {
     throw new NotFoundError("User does not exist!");
